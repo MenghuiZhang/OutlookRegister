@@ -15,7 +15,7 @@ class PatchrightController(BaseBrowserController):
             } if self.proxy else None
 
             b = p.chromium.launch(
-                headless=False,            
+                headless=False,
                 args=['--lang=zh-CN'],
                 proxy=proxy_settings
             )
@@ -56,7 +56,7 @@ class PatchrightController(BaseBrowserController):
                             captcha_passed = False
                             page.wait_for_timeout(random.randint(500, 1000))
                             break
-                        elif page.get_by_text("暂时跳过").count() > 0:
+                        elif page.get_by_text('让我们来保护你的帐户').count() > 0 or page.locator('#EmailAddress').count() > 0:
                             captcha_passed = True
                             break
                         page.wait_for_timeout(random.randint(375, 425))
@@ -68,13 +68,13 @@ class PatchrightController(BaseBrowserController):
                         break
 
                 except Exception:
-                    if page.get_by_text('暂时跳过').count() > 0:
+                    if page.get_by_text('让我们来保护你的帐户').count() > 0 or page.locator('#EmailAddress').count() > 0:
                         break
                     frame1.locator(':has-text("请再试一次"), :has-text("Keep going"), :has-text("a few more tries")').first.wait_for(timeout=15000)
                     continue
 
             except Exception:
-                if page.get_by_text('暂时跳过').count() > 0:
+                if page.get_by_text('让我们来保护你的帐户').count() > 0 or page.locator('#EmailAddress').count() > 0:
                      break
                 return False
         else: 

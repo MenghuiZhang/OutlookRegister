@@ -6,7 +6,6 @@ import threading
 from faker import Faker
 from abc import ABC, abstractmethod
 
-
 class BaseBrowserController(ABC):
     """
     所有浏览器通用的接口和共享逻辑
@@ -15,6 +14,9 @@ class BaseBrowserController(ABC):
     def __init__(self):
         with open('config.json', 'r', encoding='utf-8') as f:
             data = json.load(f)
+
+        self.config = data
+        self.choosed_mail = data['choosed_mail']
         self.wait_time = data['bot_protection_wait'] * 1000
         self.max_captcha_retries = data['max_captcha_retries']
         self.enable_oauth2 = data["oauth2"]['enable_oauth2']
@@ -28,6 +30,33 @@ class BaseBrowserController(ABC):
         self.results_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'Results')
         os.makedirs(self.results_dir, exist_ok=True)
 
+    @abstractmethod
+    def launch_browser(self):
+        """
+        获取浏览器实例,返回playwright_instance, browser_instance
+        """
+        pass
+
+    @abstractmethod
+    def handle_captcha(self, page):
+        """
+        验证码处理流程
+        """
+        pass
+
+    @abstractmethod 
+    def clean_up(self, page=None, type="all_browser"):
+        """
+        清理自己创建的内容
+        一个是单进程结束后关闭进程，另一个是程序结束后清除所有内容
+        """
+        pass
+
+    @abstractmethod
+    def get_thread_page(self):
+        """
+        返回页面
+        """
 
     def get_last_pos(self):
         """获取当前线程的上一次鼠标位置 (x, y)"""
@@ -104,33 +133,6 @@ class BaseBrowserController(ABC):
             except Exception:
                 break
 
-    @abstractmethod
-    def launch_browser(self):
-        """
-        获取浏览器实例,返回playwright_instance, browser_instance
-        """
-        pass
-
-    @abstractmethod
-    def handle_captcha(self, page):
-        """
-        验证码处理流程
-        """
-        pass
-
-    @abstractmethod 
-    def clean_up(self, page=None, type="all_browser"):
-        """
-        清理自己创建的内容
-        一个是单进程结束后关闭进程，另一个是程序结束后清除所有内容
-        """
-        pass
-
-    @abstractmethod
-    def get_thread_page(self):
-        """
-        返回页面
-        """
 
     def get_thread_browser(self):
         """
@@ -148,6 +150,21 @@ class BaseBrowserController(ABC):
                 self.active_resources.append((p, b))
 
         return self.thread_local.browser
+
+    def get_mail_provider(self, email, page):
+        """
+        通用逻辑:获取辅助邮箱的类
+        """
+
+        from .moemail_controller import MoemailController
+        from .graph_controller import OutlookGraphController
+
+        providers = {
+            "moemail": MoemailController,
+            "outlookgraph": OutlookGraphController
+        }
+        provider_cls = providers.get(self.choosed_mail)
+        return provider_cls(email, page) if provider_cls else None
 
     def outlook_register(self, page, email, password):
         """
@@ -258,29 +275,86 @@ class BaseBrowserController(ABC):
             print("[Error: IP] - 加载超时或因触发机器人检测导致按压次数达到最大仍未通过。")
             return False
 
-        filename = os.path.join(self.results_dir, 'logged_email.txt' if self.enable_oauth2 else 'unlogged_email.txt')
+        # --- 验证码通过后，绑定辅助邮箱服务 ---
+        try:
+            current_full_email = f"{email}{self.email_suffix}"
+            mail_provider = self.get_mail_provider(current_full_email, page)
+            if not mail_provider:
+                print(f"[Error: Config] - 未配置或不支持的邮箱系统: {self.choosed_mail}")
+                return False
+
+            # 挂载到 page 对象上，方便写入 secured_tokens.txt
+            recovery_email = mail_provider.get_email()
+            page.recovery_email = recovery_email
+
+            email_input = page.locator('#EmailAddress')
+            self.smooth_type(page, email_input, recovery_email)
+
+            self.wait_random_ratio(page, 0.03)
+            next_btn = page.locator('#iNext')
+            self.smooth_click(page, next_btn)
+
+            verify_code = mail_provider.get_verify_code()
+
+            code_input = page.locator('#iOttText')
+            self.smooth_type(page, code_input, verify_code)
+
+            self.wait_random_ratio(page, 0.03)
+            finish_btn = page.locator('#iNext')
+            self.smooth_click(page, finish_btn)
+
+        except Exception as e:
+            print(f"[Error: Proof Email] - {email}{self.email_suffix}注册成功，但辅助邮箱绑定失败: {e}")
+            filename = os.path.join(self.results_dir, 'unbound_accounts.txt')
+            with open(filename, 'a', encoding='utf-8') as f:
+                f.write(f"{email}{self.email_suffix}: {password}\n")
+            return False
+
+        filename = os.path.join(self.results_dir, 'secured_accounts.txt' if self.enable_oauth2 else 'secured_no_token.txt')
         with open(filename, 'a', encoding='utf-8') as f:
-            f.write(f"{email}{self.email_suffix}: {password}\n")
-        print(f'[Success: Email Registration] - {email}{self.email_suffix}: {password}')
+            f.write(f"{email}{self.email_suffix}: {password}---{recovery_email}\n")
+        print(f'[Success: Email Registration & Security Bound] - {email}{self.email_suffix}: {password}---{recovery_email}')
 
         if not self.enable_oauth2:
             return True
 
-        start_skip_time = time.time()
-        while time.time() - start_skip_time < 20:
-            try:
-                btn_skip = page.get_by_text("暂时跳过")
-                if btn_skip.count() > 0 and btn_skip.is_visible():
-                    self.smooth_click(page, btn_skip)
-                    page.wait_for_timeout(random.randint(1000, 1500))
-                else:
-                    btn_skip.wait_for(timeout=7000)
-            except Exception:
-                break
-
         try:
-            page.locator('[aria-label="新邮件"]').wait_for(timeout=32000)
-            return True
+            # 最多重试一次
+            try:
+                page.locator('[aria-label="新邮件"]').wait_for(timeout=32000)
+                return True
+            except:
+                page.reload(timeout=10000)
+                page.locator('[aria-label="新邮件"]').wait_for(timeout=20000)
+                return True
         except Exception:
             print('[Error: Timeout] - 邮箱未初始化，无法正常收件。')
             return False
+
+
+class BaseEmailProvider(ABC):
+    """
+    邮件通用接口
+    """
+
+    def __init__(self, email, page):
+
+        self.page = page
+        self.current_email = email
+        self.regex = r"安全代码: (\d{6})"
+        self.subject = "个人 Microsoft 帐户安全代码"
+        self.masked_email = f"{self.current_email[:2]}**{self.current_email.split('@')[0][-1]}@{self.current_email.split('@')[1]}"
+
+        with open('config.json', 'r', encoding='utf-8') as f:
+            self.config = json.load(f)
+
+    @abstractmethod
+    def get_email(self):
+        """获取邮箱"""
+        pass
+
+    @abstractmethod
+    def get_verify_code(self) -> str:
+        """获取验证码，注意用掩码(36^3)"""
+        pass
+

@@ -36,9 +36,9 @@ def process_single_flow(controller):
 
         token_result = get_access_token(page, email)
         if token_result[0]:
-            refresh_token, access_token, expire_at =  token_result
-            with open(os.path.join(os.path.dirname(__file__), 'Results', 'outlook_token.txt'), 'a', encoding='utf-8') as f2:
-                f2.write(f"{email}{controller.email_suffix}---{password}---{refresh_token}---{access_token}---{expire_at}\n") 
+            refresh_token, access_token, expire_at = token_result
+            with open(os.path.join(os.path.dirname(__file__), 'Results', 'secured_tokens.txt'), 'a', encoding='utf-8') as f2:
+                f2.write(f"{email}{controller.email_suffix}---{password}---{refresh_token}---{access_token}---{expire_at}---{page.recovery_email}\n") 
             print(f'[Success: TokenAuth] - {email}{controller.email_suffix}')
             return True
         else:

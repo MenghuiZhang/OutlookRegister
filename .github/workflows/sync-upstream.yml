@@ -1,0 +1,64 @@
+name: Upstream Sync
+
+on:
+  schedule:
+    - cron: '32 0 * * *'
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/sync-upstream.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: safe-upstream-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    if: github.repository == 'MenghuiZhang/OutlookRegister' && github.event.repository.fork
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      TARGET_BRANCH: 'main'
+      UPSTREAM_REPO: 'LainsNL/OutlookRegister'
+      UPSTREAM_BRANCH: 'main'
+    steps:
+      - name: Verify fork and upstream metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api "repos/$GITHUB_REPOSITORY" > "$RUNNER_TEMP/fork.json"
+          jq -e --arg target "$TARGET_BRANCH" --arg upstream "$UPSTREAM_REPO" --arg branch "$UPSTREAM_BRANCH" \
+            '.fork == true and .default_branch == $target and .parent.full_name == $upstream and .parent.default_branch == $branch' \
+            "$RUNNER_TEMP/fork.json" > /dev/null
+
+      - name: Checkout complete fork history
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ env.TARGET_BRANCH }}
+          fetch-depth: 0
+
+      - name: Safely merge upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote add upstream "https://github.com/$UPSTREAM_REPO.git"
+          git fetch --no-tags upstream "refs/heads/$UPSTREAM_BRANCH:refs/remotes/upstream/sync"
+          before=$(git rev-parse HEAD)
+          if ! git merge --no-edit refs/remotes/upstream/sync; then
+            git merge --abort || true
+            echo "::error::Upstream merge failed. Fork branch was not pushed; resolve conflicts manually."
+            exit 1
+          fi
+          git merge-base --is-ancestor "$before" HEAD
+          if [ "$before" = "$(git rev-parse HEAD)" ]; then
+            echo "Already contains all upstream commits." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          git push origin "HEAD:refs/heads/$TARGET_BRANCH"
+          echo "Safely synced $UPSTREAM_REPO ($UPSTREAM_BRANCH) into $TARGET_BRANCH." >> "$GITHUB_STEP_SUMMARY"

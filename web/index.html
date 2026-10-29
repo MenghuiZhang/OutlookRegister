@@ -1,1598 +1,2848 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" class="h-full">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>OutlookRegister 控制台</title>
-<style>
-  :root {
-    --bg: #0f1115; --panel: #171a21; --panel2: #1d212b; --border: #2a2f3a;
-    --text: #d7dce4; --muted: #7d8590; --accent: #4c8dff;
-    --green: #3fb950; --red: #f85149; --yellow: #d29922;
-  }
-  * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--text);
-         font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; font-size: 14px; }
-  header { display: flex; align-items: center; gap: 12px; padding: 14px 20px;
-           border-bottom: 1px solid var(--border); background: var(--panel); }
-  header h1 { font-size: 17px; margin: 0; font-weight: 600; }
-  header .url { color: var(--muted); font-size: 12px; }
-  .user-area { margin-left: auto; display: flex; align-items: center; gap: 8px; }
-  .user-name { color: var(--muted); font-size: 12.5px; }
-  a.btn { text-decoration: none; }
-  .btn.mini { padding: 4px 12px; font-size: 12.5px; border-radius: 6px; }
-  .warn-banner {
-    background: #332711; color: #f0c34e; border-bottom: 1px solid #6b5118;
-    padding: 7px 20px; font-size: 12.5px; text-align: center;
-  }
-  .warn-banner a { color: #ffd77a; font-weight: 600; }
-  .warn-banner b { font-family: "SF Mono", Menlo, monospace; }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Outlook 注册工作台</title>
+  <meta name="description" content="Outlook / Hotmail 自动化注册 · 临时邮箱绑密 · 代理池租约 · OAuth2 令牌工作台" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='12 12 232 232'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%231e40af'/%3E%3Cstop offset='48%25' stop-color='%232574eb'/%3E%3Cstop offset='100%25' stop-color='%2310b981'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect x='12' y='12' width='232' height='232' rx='52' fill='url(%23g)'/%3E%3Ccircle cx='124' cy='131' r='54' fill='none' stroke='%23fff' stroke-width='26'/%3E%3Cpath d='M 190 48 Q 190 69 211 69 Q 190 69 190 90 Q 190 69 169 69 Q 190 69 190 48 Z' fill='%23a7f3d0'/%3E%3C/svg%3E">
+  <meta name="theme-color" content="#2574eb">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            paper: {
+              50: '#fcfbf9',
+              100: '#f5f2eb',
+              200: '#ebe5d8',
+              300: '#d8cfc0',
+            },
+            ink: {
+              500: '#6e675b',
+              700: '#3f3a33',
+              800: '#2a261f',
+              900: '#181511',
+            },
+            brand: {
+              50: '#eff8ff',
+              100: '#dbeefe',
+              500: '#2574eb',
+              600: '#1b62d1',
+              700: '#164ea8',
+            },
+            leaf: {
+              50: '#ecfdf5',
+              100: '#d1fae5',
+              500: '#169c62',
+              600: '#11804f',
+            },
+            sun: {
+              50: '#fffbeb',
+              500: '#d97706',
+              600: '#b45309',
+            },
+            rose: {
+              50: '#fff1f2',
+              500: '#e11d48',
+              600: '#be123c',
+            }
+          },
+          fontFamily: {
+            display: ['"Inter"', '-apple-system', 'BlinkMacSystemFont', '"PingFang SC"', '"Microsoft YaHei"', 'system-ui', 'sans-serif'],
+            sans: ['"Inter"', '-apple-system', 'BlinkMacSystemFont', '"PingFang SC"', '"Microsoft YaHei"', 'system-ui', 'sans-serif'],
+            mono: ['"IBM Plex Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
+          },
+          boxShadow: {
+            soft: '0 8px 24px -4px rgba(34, 30, 24, 0.06), 0 2px 6px -1px rgba(34, 30, 24, 0.03)',
+            card: 'inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 12px 32px -6px rgba(34, 30, 24, 0.07), 0 2px 8px -2px rgba(34, 30, 24, 0.04)',
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
+      --ink: #181511;
+      --ink-soft: #3f3a33;
+      --muted: #6e675b;
+      --p-muted: #6e675b;
+      --line: rgba(34, 30, 24, 0.09);
+      --line-strong: #d8cfc0;
+      --paper: #fcfbf9;
+      --card: rgba(255, 255, 255, 0.92);
+      --brand: #2574eb;
+      --brand-dark: #164ea8;
+      --ok: #11804f;
+      --bad: #e11d48;
+      --warn: #b45309;
+      --blue: #2574eb;
+    }
 
-  /* 修改密码弹窗 */
-  .modal-mask { position: fixed; inset: 0; background: rgba(0,0,0,.55); display: flex;
-                align-items: center; justify-content: center; z-index: 100; }
-  .modal-mask[hidden] { display: none; }
-  .modal-card { width: min(360px, calc(100vw - 32px)); background: var(--panel);
-                border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; }
-  .modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-  .modal-head h3 { margin: 0; font-size: 15px; }
-  .modal-card label { display: block; margin-bottom: 10px; font-size: 12.5px; color: var(--muted); }
-  .modal-card input { width: 100%; margin-top: 4px; background: #0a0c10; color: var(--text);
-                      border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; font-size: 13px; }
-  .modal-card input:focus { outline: none; border-color: var(--accent); }
-  .cp-msg { min-height: 18px; font-size: 12px; font-family: "SF Mono", Menlo, monospace;
-            margin-bottom: 10px; color: var(--muted); }
-  .cp-msg.ok { color: var(--green); }
-  .cp-msg.bad { color: var(--red); }
-  .badge { padding: 3px 12px; border-radius: 999px; font-size: 12px; border: 1px solid var(--border); }
-  .badge.idle { color: var(--muted); }
-  .badge.running { color: var(--green); border-color: var(--green); }
-  .badge.stopping { color: var(--yellow); border-color: var(--yellow); }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
 
-  nav { display: flex; gap: 4px; padding: 10px 20px 0; background: var(--panel); }
-  .tab { background: none; border: 1px solid transparent; border-bottom: none; color: var(--muted);
-         padding: 8px 18px; cursor: pointer; border-radius: 8px 8px 0 0; font-size: 14px; }
-  .tab.active { color: var(--text); background: var(--bg); border-color: var(--border); }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background-color: #f7f5ef;
+      background-image:
+        radial-gradient(1000px 480px at 0% 0%, rgba(37, 116, 235, 0.07), transparent 60%),
+        radial-gradient(900px 450px at 100% 5%, rgba(22, 156, 98, 0.06), transparent 55%),
+        linear-gradient(180deg, #fcfbf9 0%, #f3efe6 100%);
+      background-attachment: fixed;
+      color: var(--ink);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
 
-  main { padding: 16px 20px 40px; }
+    /* Unified Page Shell */
+    .shell {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 1.5rem 1.5rem 3.5rem;
+    }
+    @media (max-width: 640px) {
+      .shell { padding: 1.25rem 1rem 2.5rem; }
+    }
 
-  .stats { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
-  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
-          padding: 10px 18px; min-width: 110px; }
-  .card .label { color: var(--muted); font-size: 12px; margin-bottom: 4px; }
-  .card b { font-size: 18px; }
-  .green { color: var(--green); } .red { color: var(--red); }
+    /* Page Title Hero */
+    .page-hero {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid rgba(34, 30, 24, 0.08);
+      flex-wrap: wrap;
+    }
+    .page-hero h1 {
+      margin: 0;
+      font-family: var(--font-sans);
+      font-size: 1.45rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--ink);
+      line-height: 1.25;
+    }
+    .page-hero p {
+      margin: 0.25rem 0 0;
+      color: var(--muted);
+      font-size: 0.8125rem;
+    }
 
-  .controls { display: flex; gap: 10px; margin-bottom: 14px; }
-  button.btn { background: var(--panel2); color: var(--text); border: 1px solid var(--border);
-               padding: 8px 18px; border-radius: 8px; cursor: pointer; font-size: 14px; }
-  button.btn:hover:not(:disabled) { border-color: var(--accent); }
-  button.btn:disabled { opacity: .45; cursor: not-allowed; }
-  button.btn.primary { background: #1f3a5f; border-color: #2f5da8; }
-  button.btn.danger { background: #4a1f22; border-color: #8b3336; }
+    /* Surface & Panel System */
+    .panel {
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid rgba(34, 30, 24, 0.09);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 8px 24px -6px rgba(34, 30, 24, 0.05);
+      border-radius: 1rem;
+    }
+    .panel-pad {
+      padding: 1.35rem 1.5rem;
+      margin-bottom: 1.25rem;
+    }
+    .panel-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding-bottom: 0.9rem;
+      margin-bottom: 1rem;
+      border-bottom: 1px solid rgba(34, 30, 24, 0.07);
+      flex-wrap: wrap;
+    }
+    .panel-head h2 {
+      margin: 0;
+      font-family: var(--font-sans);
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--ink);
+    }
+    .sub {
+      margin: 0.2rem 0 0;
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
 
-  #log-box { background: #0a0c10; border: 1px solid var(--border); border-radius: 10px;
-             height: 52vh; overflow-y: auto; padding: 10px 14px;
-             font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 12.5px; line-height: 1.65; }
-  #log-box .line { white-space: pre-wrap; word-break: break-all; color: var(--text); }
-  #log-box .ok { color: var(--green); }
-  #log-box .err { color: var(--red); }
-  #log-box .sys { color: var(--accent); }
+    .stat-card, .stat {
+      position: relative;
+      background: rgba(255, 255, 255, 0.94);
+      border: 1px solid rgba(34, 30, 24, 0.085);
+      box-shadow: inset 0 1px 0 #fff, 0 6px 18px -6px rgba(34, 30, 24, 0.05);
+      border-radius: 0.95rem;
+      padding: 1rem 1.15rem;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .stat-card:hover, .stat:hover {
+      border-color: rgba(37, 116, 235, 0.25);
+      box-shadow: inset 0 1px 0 #fff, 0 10px 24px -8px rgba(34, 30, 24, 0.08);
+    }
+    .stat b {
+      display: block;
+      font-family: var(--font-sans);
+      font-size: 1.65rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      font-variant-numeric: tabular-nums;
+      margin-top: 0.25rem;
+    }
+    .stat span {
+      display: block;
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
 
-  fieldset { border: 1px solid var(--border); border-radius: 10px; margin: 0 0 14px;
-             padding: 12px 16px 14px; background: var(--panel); }
-  fieldset legend { color: var(--accent); font-size: 13px; padding: 0 6px; }
-  .field { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 8px; }
-  .field > label { flex: 0 0 190px; text-align: right; padding-top: 7px; cursor: help; }
-  .field > label span { display: block; color: var(--text); font-size: 13px; }
-  .field input[type=text], .field input[type=number] {
-    flex: 1; background: #0a0c10; color: var(--text); border: 1px solid var(--border);
-    border-radius: 6px; padding: 7px 10px; font-size: 13px; font-family: "SF Mono", Menlo, monospace; }
-  .field textarea { flex: 1; background: #0a0c10; color: var(--text); border: 1px solid var(--border);
-                    border-radius: 6px; padding: 7px 10px; font-size: 12.5px; resize: vertical;
-                    font-family: "SF Mono", Menlo, monospace; }
-  .field input:focus, .field textarea:focus { outline: none; border-color: var(--accent); }
-  .field fieldset { flex: 1; margin: 0; }
-  .field input[type=checkbox] { width: 17px; height: 17px; margin-top: 7px; accent-color: var(--accent); }
+    /* Standardized 40px Form Control System */
+    input.field,
+    select.field,
+    .form-field input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+    .form-field select {
+      width: 100%;
+      height: 2.5rem;
+      border-radius: 0.65rem;
+      border: 1.5px solid #dcd4c4;
+      background: #ffffff;
+      padding: 0 0.8rem;
+      font-size: 0.84rem;
+      color: var(--ink);
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .form-field input[type="file"] {
+      width: 100%;
+      height: 2.5rem;
+      border-radius: 0.65rem;
+      border: 1.5px dashed #dcd4c4;
+      background: #fcfbf9;
+      padding: 0.35rem 0.65rem;
+      font-size: 0.78rem;
+      color: var(--ink-soft);
+    }
+    textarea.field,
+    .form-field textarea {
+      width: 100%;
+      border-radius: 0.65rem;
+      border: 1.5px solid #dcd4c4;
+      background: #ffffff;
+      padding: 0.6rem 0.8rem;
+      font-size: 0.84rem;
+      color: var(--ink);
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+      resize: vertical;
+    }
+    input.field:hover, select.field:hover, textarea.field:hover,
+    .form-field input:hover, .form-field select:hover, .form-field textarea:hover {
+      border-color: #c2b7a3;
+    }
+    input.field:focus, select.field:focus, textarea.field:focus,
+    .form-field input:focus, .form-field select:focus, .form-field textarea:focus {
+      border-color: var(--brand);
+      box-shadow: 0 0 0 3px rgba(37, 116, 235, 0.13);
+      background: #fff;
+    }
+    input.field:disabled, select.field:disabled, textarea.field:disabled,
+    .form-field input:disabled, .form-field select:disabled, .form-field textarea:disabled,
+    .form-field input[readonly] {
+      background: #f3efe6;
+      color: #7c7467;
+      cursor: not-allowed;
+    }
 
-  #result-files { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
-  .file-btn { background: var(--panel); color: var(--muted); border: 1px solid var(--border);
-              padding: 6px 14px; border-radius: 999px; cursor: pointer; font-size: 13px; }
-  .file-btn.active { color: var(--text); border-color: var(--accent); background: #16233a; }
-  table { width: 100%; border-collapse: collapse; background: var(--panel);
-          border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
-  th, td { border-bottom: 1px solid var(--border); padding: 8px 10px; text-align: left;
-           font-size: 12.5px; }
-  th { background: var(--panel2); color: var(--muted); font-weight: 500; position: sticky; top: 0; }
-  tr:hover td { background: #1a1e27; }
-  .muted { color: var(--muted); }
-  .table-wrap { max-height: 62vh; overflow: auto; border-radius: 10px; }
+    .field-label,
+    .form-field > label:not(.check-inline):not(.check):not(.check-card) {
+      display: block;
+      margin-bottom: 0.35rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      line-height: 1.2;
+      color: #4a443a;
+    }
 
-  /* ================================================================
-     代理池页 (照搬 grok-slim-register1 /proxy-settings 的暖纸色设计)
-     所有样式以 #tab-proxy 作用域隔离, 不影响其他 tab 的深色主题
-     ================================================================ */
-  #tab-proxy {
-    --font-sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
-    --ink: #181511;
-    --ink-soft: #3f3a33;
-    --p-muted: #6e675b;
-    --brand: #2574eb;
-    --brand-dark: #164ea8;
-  }
-  #tab-proxy .shell {
-    max-width: 1600px;
-    margin: 0 auto;
-    padding: 1.5rem;
-    background-color: #f7f5ef;
-    background-image:
-      radial-gradient(1000px 480px at 0% 0%, rgba(37, 116, 235, 0.07), transparent 60%),
-      radial-gradient(900px 450px at 100% 5%, rgba(22, 156, 98, 0.06), transparent 55%),
-      linear-gradient(180deg, #fcfbf9 0%, #f3efe6 100%);
-    border-radius: 14px;
-    border: 1px solid var(--border);
-    color: var(--ink);
-    font-family: var(--font-sans);
-    font-size: 14px;
-    line-height: 1.5;
-  }
-  @media (max-width: 640px) {
-    #tab-proxy .shell { padding: 1.25rem 1rem; }
-  }
+    .form-field {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+    .form-field.full {
+      grid-column: 1 / -1;
+    }
+    .hint {
+      font-size: 0.72rem;
+      color: var(--muted);
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      margin-top: 0.25rem;
+      line-height: 1.45;
+    }
 
-  #tab-proxy .page-hero {
-    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
-    margin-bottom: 1.25rem; padding-bottom: 1rem;
-    border-bottom: 1px solid rgba(34, 30, 24, 0.08); flex-wrap: wrap;
-  }
-  #tab-proxy .page-hero h1 {
-    margin: 0; font-family: var(--font-sans); font-size: 1.45rem; font-weight: 700;
-    letter-spacing: -0.02em; color: var(--ink); line-height: 1.25;
-  }
-  #tab-proxy .page-hero p { margin: 0.25rem 0 0; color: var(--p-muted); font-size: 0.8125rem; }
+    /* 40px Inline Switch/Check Box */
+    label.check-inline,
+    .check-inline {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      height: 2.5rem;
+      margin: 0;
+      padding: 0 0.85rem;
+      border-radius: 0.65rem;
+      border: 1.5px solid #dcd4c4;
+      background: #fcfbf9;
+      cursor: pointer;
+      font-size: 0.82rem;
+      font-weight: 600;
+      line-height: 1.2;
+      color: var(--ink);
+      user-select: none;
+      transition: border-color 0.15s, background 0.15s;
+      white-space: nowrap;
+    }
+    .check-inline:hover {
+      border-color: var(--brand);
+      background: #f7fbff;
+    }
+    .check-inline input[type="checkbox"] {
+      width: 1rem !important;
+      height: 1rem !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      accent-color: var(--brand);
+      flex-shrink: 0;
+    }
 
-  #tab-proxy .panel {
-    background: rgba(255, 255, 255, 0.92);
-    border: 1px solid rgba(34, 30, 24, 0.09);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 8px 24px -6px rgba(34, 30, 24, 0.05);
-    border-radius: 1rem;
-    padding: 1.35rem 1.5rem;
-    margin-bottom: 1.25rem;
-  }
-  #tab-proxy .panel-head {
-    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
-    padding-bottom: 0.9rem; margin-bottom: 1rem;
-    border-bottom: 1px solid rgba(34, 30, 24, 0.07); flex-wrap: wrap;
-  }
-  #tab-proxy .panel h2 {
-    margin: 0; font-family: var(--font-sans); font-size: 1.05rem; font-weight: 700;
-    letter-spacing: -0.01em; color: var(--ink);
-  }
-  #tab-proxy .sub {
-    margin: 0.2rem 0 0; color: var(--p-muted); font-size: 0.78rem;
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  }
+    /* Boxed Check Card */
+    label.check-card,
+    .check-card {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      margin: 0;
+      border: 1.5px solid #dcd4c4;
+      border-radius: 0.75rem;
+      padding: 0.7rem 0.85rem;
+      background: #fcfbf9;
+      cursor: pointer;
+      font-size: 0.82rem;
+      font-weight: 600;
+      line-height: 1.3;
+      color: var(--ink);
+      user-select: none;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .check-card:hover {
+      border-color: var(--brand);
+      background: #f7fbff;
+    }
+    .check-card input[type="checkbox"] {
+      width: 1rem !important;
+      height: 1rem !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      accent-color: var(--brand);
+      flex-shrink: 0;
+    }
 
-  #tab-proxy .summary {
-    display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0.85rem; margin-bottom: 1.25rem;
-  }
-  #tab-proxy .stat {
-    position: relative;
-    background: rgba(255, 255, 255, 0.94);
-    border: 1px solid rgba(34, 30, 24, 0.085);
-    box-shadow: inset 0 1px 0 #fff, 0 6px 18px -6px rgba(34, 30, 24, 0.05);
-    border-radius: 0.95rem; padding: 1rem 1.15rem;
-    transition: border-color 0.15s ease, box-shadow 0.15s ease;
-  }
-  #tab-proxy .stat:hover {
-    border-color: rgba(37, 116, 235, 0.25);
-    box-shadow: inset 0 1px 0 #fff, 0 10px 24px -8px rgba(34, 30, 24, 0.08);
-  }
-  #tab-proxy .stat b {
-    display: block; font-family: var(--font-sans); font-size: 1.65rem; font-weight: 700;
-    letter-spacing: -0.02em; line-height: 1.15; font-variant-numeric: tabular-nums; margin-top: 0.25rem;
-  }
-  #tab-proxy .stat span {
-    display: block; font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 0.08em; color: var(--p-muted);
-  }
+    /* Standardized Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      height: 2.375rem;
+      border-radius: 0.65rem;
+      padding: 0 0.9rem;
+      font-size: 0.8125rem;
+      font-weight: 700;
+      line-height: 1;
+      border: 1.5px solid #dcd4c4;
+      background: #ffffff;
+      color: #2a261f;
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+      box-shadow: 0 1px 2px rgba(34, 30, 24, 0.03);
+      transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+      text-decoration: none;
+    }
+    .btn:hover:not(:disabled) {
+      border-color: #2574eb;
+      color: #164ea8;
+      background: #f7fbff;
+      box-shadow: 0 3px 10px rgba(37, 116, 235, 0.08);
+    }
+    .btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      box-shadow: none !important;
+    }
+    .btn-sm {
+      height: 2rem;
+      padding: 0 0.65rem;
+      font-size: 0.75rem;
+      border-radius: 0.5rem;
+    }
+    .btn-primary, .btn.primary {
+      border-color: transparent;
+      background: linear-gradient(135deg, #2574eb 0%, #169c62 100%);
+      color: #ffffff !important;
+      box-shadow: 0 4px 14px -2px rgba(37, 116, 235, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    }
+    .btn-primary:hover:not(:disabled), .btn.primary:hover:not(:disabled) {
+      border-color: transparent;
+      background: linear-gradient(135deg, #1b62d1 0%, #11804f 100%);
+      color: #ffffff !important;
+      box-shadow: 0 6px 18px -2px rgba(37, 116, 235, 0.32);
+    }
+    .btn-danger, .btn.danger {
+      border-color: rgba(225, 29, 72, 0.25);
+      background: #fff5f7;
+      color: #be123c;
+    }
+    .btn-danger:hover:not(:disabled), .btn.danger:hover:not(:disabled) {
+      border-color: #e11d48;
+      background: #ffe4e8;
+      color: #9f1239;
+    }
+    .btn-danger-solid {
+      border-color: transparent;
+      background: linear-gradient(135deg, #e11d48 0%, #f43f5e 100%);
+      color: #ffffff !important;
+      box-shadow: 0 4px 14px -2px rgba(225, 29, 72, 0.24);
+    }
+    .btn-danger-solid:hover:not(:disabled) {
+      border-color: transparent;
+      background: linear-gradient(135deg, #be123c 0%, #e11d48 100%);
+      color: #ffffff !important;
+    }
+    .btn-ghost {
+      background: rgba(255, 255, 255, 0.85);
+      border: 1.5px solid #dcd4c4;
+      color: #2a261f;
+    }
 
-  /* 40px 表单控件体系 */
-  #tab-proxy .form-field input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
-  #tab-proxy .form-field select {
-    width: 100%; height: 2.5rem; border-radius: 0.65rem; border: 1.5px solid #dcd4c4;
-    background: #ffffff; padding: 0 0.8rem; font-size: 0.84rem; color: var(--ink);
-    outline: none; transition: border-color 0.15s ease, box-shadow 0.15s ease;
-  }
-  #tab-proxy .form-field input[type="file"] {
-    width: 100%; height: 2.5rem; border-radius: 0.65rem; border: 1.5px dashed #dcd4c4;
-    background: #fcfbf9; padding: 0.35rem 0.65rem; font-size: 0.78rem; color: var(--ink-soft);
-  }
-  #tab-proxy .form-field textarea {
-    width: 100%; border-radius: 0.65rem; border: 1.5px solid #dcd4c4; background: #ffffff;
-    padding: 0.6rem 0.8rem; font-size: 0.84rem; color: var(--ink); outline: none;
-    transition: border-color 0.15s ease, box-shadow 0.15s ease; resize: vertical;
-  }
-  #tab-proxy .form-field input:hover, #tab-proxy .form-field select:hover, #tab-proxy .form-field textarea:hover { border-color: #c2b7a3; }
-  #tab-proxy .form-field input:focus, #tab-proxy .form-field select:focus, #tab-proxy .form-field textarea:focus {
-    border-color: var(--brand); box-shadow: 0 0 0 3px rgba(37, 116, 235, 0.13); background: #fff;
-  }
-  #tab-proxy .form-field > label:not(.check-inline) {
-    display: block; margin-bottom: 0.35rem; font-size: 0.75rem; font-weight: 700;
-    line-height: 1.2; color: #4a443a;
-  }
-  #tab-proxy .form-field { display: flex; flex-direction: column; min-width: 0; }
+    /* Badges */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      border-radius: 9999px;
+      padding: 0.16rem 0.58rem;
+      font-size: 0.7rem;
+      font-weight: 700;
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      background: #f2efe9;
+      color: #575044;
+      border: 1px solid rgba(34, 30, 24, 0.08);
+      white-space: nowrap;
+      line-height: 1.2;
+    }
+    .badge::before {
+      content: "";
+      width: 0.36rem;
+      height: 0.36rem;
+      border-radius: 9999px;
+      background: currentColor;
+      opacity: 0.8;
+    }
+    .badge.ok, .badge.running {
+      background: #ecfdf5;
+      color: #0f7647;
+      border-color: rgba(22, 156, 98, 0.22);
+    }
+    .badge.bad {
+      background: #fff1f2;
+      color: #be123c;
+      border-color: rgba(225, 29, 72, 0.22);
+    }
+    .badge.warn, .badge.stopping {
+      background: #fffbeb;
+      color: #b45309;
+      border-color: rgba(217, 119, 6, 0.25);
+    }
 
-  #tab-proxy .check-inline {
-    display: flex; align-items: center; gap: 0.55rem; height: 2.5rem; margin: 0; padding: 0 0.85rem;
-    border-radius: 0.65rem; border: 1.5px solid #dcd4c4; background: #fcfbf9; cursor: pointer;
-    font-size: 0.82rem; font-weight: 600; line-height: 1.2; color: var(--ink);
-    user-select: none; transition: border-color 0.15s, background 0.15s; white-space: nowrap;
-  }
-  #tab-proxy .check-inline:hover { border-color: var(--brand); background: #f7fbff; }
-  #tab-proxy .check-inline input[type="checkbox"] {
-    width: 1rem; height: 1rem; margin: 0; padding: 0; accent-color: var(--brand); flex-shrink: 0;
-  }
+    /* Tables */
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid rgba(34, 30, 24, 0.09);
+      border-radius: 0.8rem;
+      background: #ffffff;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-variant-numeric: tabular-nums;
+    }
+    th, td {
+      text-align: left;
+      padding: 0.65rem 0.85rem;
+      border-bottom: 1px solid rgba(34, 30, 24, 0.065);
+      white-space: nowrap;
+      vertical-align: middle;
+      font-size: 0.8rem;
+    }
+    tbody tr:hover td {
+      background-color: #faf8f3;
+    }
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+    th {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #6e675b;
+      background: #f6f3eb;
+      border-bottom: 1px solid rgba(34, 30, 24, 0.09);
+      height: 2.4rem;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+    td small {
+      display: block;
+      color: #7c7467;
+      font-size: 0.7rem;
+      margin-top: 0.1rem;
+    }
+    td .btn {
+      height: 1.85rem;
+      padding: 0 0.55rem;
+      font-size: 0.72rem;
+      border-radius: 0.45rem;
+      margin-right: 0.2rem;
+    }
+    td input[data-label], td input[data-cap] {
+      height: 1.85rem;
+      border: 1px solid #dfd7c8;
+      border-radius: 0.45rem;
+      background: #fcfbf9;
+      padding: 0 0.5rem;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.75rem;
+      color: var(--ink);
+      transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+    }
+    td input[data-label]:focus, td input[data-cap]:focus {
+      border-color: var(--brand);
+      background: #fff;
+      outline: none;
+      box-shadow: 0 0 0 2.5px rgba(37, 116, 235, 0.12);
+    }
 
-  /* 40px 按钮体系 */
-  #tab-proxy .btn {
-    display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
-    height: 2.375rem; border-radius: 0.65rem; padding: 0 0.9rem; font-size: 0.8125rem;
-    font-weight: 700; line-height: 1; border: 1.5px solid #dcd4c4; background: #ffffff;
-    color: #2a261f; cursor: pointer; user-select: none; white-space: nowrap;
-    box-shadow: 0 1px 2px rgba(34, 30, 24, 0.03);
-    transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
-  }
-  #tab-proxy .btn:hover:not(:disabled) {
-    border-color: #2574eb; color: #164ea8; background: #f7fbff;
-    box-shadow: 0 3px 10px rgba(37, 116, 235, 0.08);
-  }
-  #tab-proxy .btn:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
-  #tab-proxy .btn-sm { height: 2rem; padding: 0 0.65rem; font-size: 0.75rem; border-radius: 0.5rem; }
-  #tab-proxy .btn.primary {
-    border-color: transparent;
-    background: linear-gradient(135deg, #2574eb 0%, #169c62 100%);
-    color: #ffffff; box-shadow: 0 4px 14px -2px rgba(37, 116, 235, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  }
-  #tab-proxy .btn.primary:hover:not(:disabled) {
-    border-color: transparent;
-    background: linear-gradient(135deg, #1b62d1 0%, #11804f 100%);
-    color: #ffffff; box-shadow: 0 6px 18px -2px rgba(37, 116, 235, 0.32);
-  }
-  #tab-proxy .btn.danger { border-color: rgba(225, 29, 72, 0.25); background: #fff5f7; color: #be123c; }
-  #tab-proxy .btn.danger:hover:not(:disabled) { border-color: #e11d48; background: #ffe4e8; color: #9f1239; }
-  #tab-proxy td .btn { height: 1.85rem; padding: 0 0.55rem; font-size: 0.72rem; border-radius: 0.45rem; margin-right: 0.2rem; }
+    /* Alerts & Messages */
+    .warning {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      border: 1px solid rgba(217, 119, 6, 0.28);
+      background: #fffbeb;
+      color: #92400e;
+      padding: 0.65rem 0.9rem;
+      border-radius: 0.7rem;
+      font-size: 0.78rem;
+      line-height: 1.45;
+    }
+    .warning::before {
+      content: "⚠";
+      font-size: 0.9rem;
+      flex-shrink: 0;
+    }
+    .message {
+      min-height: 1.25rem;
+      font-size: 0.76rem;
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      color: #6e675b;
+      margin-top: 0.5rem;
+    }
+    .message.ok { color: #11804f; font-weight: 600; }
+    .message.bad { color: #e11d48; font-weight: 600; }
 
-  #tab-proxy .badge {
-    display: inline-flex; align-items: center; gap: 0.3rem; border-radius: 9999px;
-    padding: 0.16rem 0.58rem; font-size: 0.7rem; font-weight: 700;
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    background: #f2efe9; color: #575044; border: 1px solid rgba(34, 30, 24, 0.08);
-    white-space: nowrap; line-height: 1.2;
-  }
-  #tab-proxy .badge::before {
-    content: ""; width: 0.36rem; height: 0.36rem; border-radius: 9999px;
-    background: currentColor; opacity: 0.8;
-  }
-  #tab-proxy .badge.ok { background: #ecfdf5; color: #0f7647; border-color: rgba(22, 156, 98, 0.22); }
-  #tab-proxy .badge.bad { background: #fff1f2; color: #be123c; border-color: rgba(225, 29, 72, 0.22); }
-  #tab-proxy .badge.warn { background: #fffbeb; color: #b45309; border-color: rgba(217, 119, 6, 0.25); }
+    /* Progress & Terminal & Subtabs */
+    .progress-bar {
+      background: linear-gradient(90deg, #2574eb 0%, #0ea5e9 45%, #169c62 100%);
+      background-size: 200% 100%;
+      transition: width 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+      box-shadow: 0 2px 10px rgba(37, 116, 235, 0.3);
+    }
+    .nav-pill {
+      transition: all 0.15s ease;
+      color: rgba(63, 58, 51, 0.75);
+    }
+    .nav-pill:hover {
+      color: #181511;
+      background: rgba(255, 255, 255, 0.6);
+    }
+    .nav-pill.active {
+      background: #ffffff;
+      color: #1b62d1;
+      font-weight: 700;
+      box-shadow: 0 1px 2px rgba(34, 30, 24, 0.06), inset 0 0 0 1px rgba(24, 21, 17, 0.05);
+    }
+    .subtab-btn {
+      transition: all 0.15s ease;
+      font-weight: 600;
+    }
+    .subtab-btn.active {
+      background: #fff;
+      color: #164ea8;
+      box-shadow: 0 2px 6px rgba(34, 30, 24, 0.07), inset 0 0 0 1px rgba(34, 30, 24, 0.05);
+      font-weight: 700;
+    }
 
-  #tab-proxy .table-wrap {
-    overflow-x: auto; border: 1px solid rgba(34, 30, 24, 0.09);
-    border-radius: 0.8rem; background: #ffffff;
-  }
-  #tab-proxy table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; min-width: 980px; }
-  #tab-proxy th, #tab-proxy td {
-    text-align: left; padding: 0.65rem 0.85rem; border-bottom: 1px solid rgba(34, 30, 24, 0.065);
-    white-space: nowrap; vertical-align: middle;
-  }
-  #tab-proxy tbody tr:hover td { background-color: #faf8f3; }
-  #tab-proxy tbody tr:last-child td { border-bottom: none; }
-  #tab-proxy th {
-    font-size: 0.68rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
-    color: #6e675b; background: #f6f3eb; border-bottom: 1px solid rgba(34, 30, 24, 0.09); height: 2.4rem;
-  }
-  #tab-proxy td small { display: block; color: #7c7467; font-size: 0.7rem; margin-top: 0.1rem; }
-  #tab-proxy td input[data-label], #tab-proxy td input[data-cap] {
-    height: 1.85rem; border: 1px solid #dfd7c8; border-radius: 0.45rem; background: #fcfbf9;
-    padding: 0 0.5rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    font-size: 0.75rem; color: var(--ink); transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
-  }
-  #tab-proxy td input[data-label]:focus, #tab-proxy td input[data-cap]:focus {
-    border-color: var(--brand); background: #fff; outline: none;
-    box-shadow: 0 0 0 2.5px rgba(37, 116, 235, 0.12);
-  }
+    /* Config blocks inside left panel */
+    #subtab-config {
+      max-height: min(74vh, 46rem);
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: #d5cdb8 transparent;
+    }
+    .cfg-block {
+      border: 1px solid rgba(26, 23, 18, 0.085);
+      border-radius: 0.95rem;
+      background: #fff;
+      padding: 0.9rem 1rem 1rem;
+      display: grid;
+      gap: 0.65rem;
+      box-shadow: 0 2px 6px rgba(34, 30, 24, 0.02);
+    }
+    .cfg-title {
+      font-size: 0.8125rem;
+      font-weight: 700;
+      color: #181511;
+      margin: 0;
+      padding-bottom: 0.35rem;
+      border-bottom: 1px solid rgba(26, 23, 18, 0.06);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
 
-  #tab-proxy .warning {
-    display: flex; align-items: center; gap: 0.6rem;
-    border: 1px solid rgba(217, 119, 6, 0.28); background: #fffbeb; color: #92400e;
-    padding: 0.65rem 0.9rem; border-radius: 0.7rem; font-size: 0.78rem; line-height: 1.45;
-  }
-  #tab-proxy .warning::before { content: "⚠"; font-size: 0.9rem; flex-shrink: 0; }
+    /* Terminal chrome window header */
+    .term-window {
+      border-radius: 1rem;
+      overflow: hidden;
+      border: 1px solid rgba(34, 30, 24, 0.09);
+      background: #fcfbf9;
+      box-shadow: inset 0 1px 0 #fff, 0 4px 14px rgba(34, 30, 24, 0.03);
+    }
+    .term-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.55rem 0.85rem;
+      background: #f3efe6;
+      border-bottom: 1px solid rgba(34, 30, 24, 0.07);
+    }
+    .term-dots {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    .term-dots i {
+      width: 0.52rem;
+      height: 0.52rem;
+      border-radius: 9999px;
+      display: inline-block;
+    }
+    #log-box {
+      height: 23.5rem;
+      overflow-y: auto;
+      padding: 0.75rem 0.9rem;
+      font-family: "IBM Plex Mono", "SF Mono", Menlo, Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.62;
+      scrollbar-width: thin;
+      scrollbar-color: #d5cdb8 transparent;
+    }
+    #log-box .line {
+      animation: fadeSlide .18s ease-out;
+      padding: 0.16rem 0.45rem;
+      border-radius: 0.38rem;
+      white-space: pre-wrap;
+      word-break: break-word;
+      color: #2a261f;
+    }
+    #log-box .line:hover {
+      background: rgba(34, 30, 24, 0.038);
+    }
+    #log-box .line.ok {
+      color: #11804f;
+      font-weight: 500;
+      background: rgba(22, 156, 98, 0.04);
+    }
+    #log-box .line.err {
+      color: #e11d48;
+      font-weight: 500;
+      background: rgba(225, 29, 72, 0.04);
+    }
+    #log-box .line.sys {
+      color: #1b62d1;
+      font-weight: 500;
+    }
 
-  #tab-proxy .message {
-    min-height: 1.25rem; font-size: 0.76rem;
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    color: #6e675b; margin-top: 0.5rem;
-  }
-  #tab-proxy .message.ok { color: #11804f; font-weight: 600; }
-  #tab-proxy .message.bad { color: #e11d48; font-weight: 600; }
+    @keyframes fadeSlide {
+      from { opacity: 0; transform: translateY(3px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: .45; transform: scale(.85); }
+    }
+    .pulse-live { animation: pulse-dot 1.4s ease-in-out infinite; }
 
-  /* 结构化工具条: 左筛选 | 右批量操作 */
-  #tab-proxy .settings-grid {
-    display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; align-items: end;
-  }
-  #tab-proxy .toolbar-bar {
-    display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
-    margin-bottom: 0.9rem; padding: 0.65rem 0.75rem; background: #f6f3eb;
-    border: 1px solid rgba(34, 30, 24, 0.07); border-radius: 0.75rem; flex-wrap: wrap;
-  }
-  #tab-proxy .toolbar-filters { display: flex; align-items: center; gap: 0.6rem; flex: 1 1 360px; min-width: 0; }
-  #tab-proxy .toolbar-filters input {
-    flex: 1 1 220px; max-width: 340px; height: 2.25rem; border-radius: 0.55rem;
-    border: 1.5px solid #dcd4c4; background: #fff; padding: 0 0.75rem;
-    font-size: 0.82rem; color: var(--ink); outline: none;
-  }
-  #tab-proxy .toolbar-filters select {
-    width: 165px; height: 2.25rem; border-radius: 0.55rem; border: 1.5px solid #dcd4c4;
-    background: #fff; padding: 0 0.65rem; font-size: 0.82rem; color: var(--ink); outline: none;
-  }
-  #tab-proxy .toolbar-filters input:focus, #tab-proxy .toolbar-filters select:focus {
-    border-color: var(--brand); box-shadow: 0 0 0 3px rgba(37, 116, 235, 0.12);
-  }
-  #tab-proxy .actions { display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap; }
-  #tab-proxy .toolbar-bar .btn { height: 2.25rem; padding: 0 0.75rem; font-size: 0.78rem; border-radius: 0.55rem; }
+    /* Proxy & Email specific layout helpers */
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 0.85rem;
+      margin-bottom: 1.25rem;
+    }
+    .settings-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 1rem;
+      align-items: end;
+    }
+    .toolbar-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 0.9rem;
+      padding: 0.65rem 0.75rem;
+      background: #f6f3eb;
+      border: 1px solid rgba(34, 30, 24, 0.07);
+      border-radius: 0.75rem;
+      flex-wrap: wrap;
+    }
+    .toolbar-filters {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      flex: 1 1 360px;
+      min-width: 0;
+    }
+    .toolbar-filters input {
+      flex: 1 1 220px;
+      max-width: 340px;
+      height: 2.25rem;
+      border-radius: 0.55rem;
+      border: 1.5px solid #dcd4c4;
+      background: #fff;
+      padding: 0 0.75rem;
+      font-size: 0.82rem;
+      color: var(--ink);
+      outline: none;
+    }
+    .toolbar-filters select {
+      width: 165px;
+      height: 2.25rem;
+      border-radius: 0.55rem;
+      border: 1.5px solid #dcd4c4;
+      background: #fff;
+      padding: 0 0.65rem;
+      font-size: 0.82rem;
+      color: var(--ink);
+      outline: none;
+    }
+    .toolbar-filters input:focus, .toolbar-filters select:focus {
+      border-color: var(--brand);
+      box-shadow: 0 0 0 3px rgba(37, 116, 235, 0.12);
+    }
+    .actions {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      flex-wrap: wrap;
+    }
+    .toolbar-bar .btn {
+      height: 2.25rem;
+      padding: 0 0.75rem;
+      font-size: 0.78rem;
+      border-radius: 0.55rem;
+    }
+    .label-cell {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .seq-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 2rem;
+      height: 1.6rem;
+      padding: 0 0.4rem;
+      border-radius: 0.4rem;
+      background: #f2efe9;
+      color: #575044;
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+    .empty {
+      padding: 3rem 1.5rem;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+    .pager {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-top: 0.9rem;
+      padding-top: 0.85rem;
+      border-top: 1px solid rgba(34, 30, 24, 0.07);
+      flex-wrap: wrap;
+    }
+    .pager select {
+      height: 2rem;
+      border-radius: 0.5rem;
+      border: 1.5px solid #dcd4c4;
+      background: #fff;
+      padding: 0 0.5rem;
+      font-size: 0.78rem;
+      margin-left: 0.3rem;
+      color: var(--ink);
+    }
+    .pager .btn {
+      height: 2rem;
+      padding: 0 0.75rem;
+      font-size: 0.76rem;
+      border-radius: 0.5rem;
+    }
+    .mono {
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 0.78rem;
+    }
+    dialog {
+      border: 1px solid rgba(34, 30, 24, 0.12);
+      border-radius: 1.15rem;
+      padding: 0;
+      width: min(720px, calc(100vw - 28px));
+      background: #fcfbf9;
+      color: var(--ink);
+      box-shadow: 0 28px 80px rgba(24, 21, 17, 0.28);
+      font-family: var(--font-sans);
+    }
+    dialog::backdrop {
+      background: rgba(24, 21, 17, 0.45);
+      backdrop-filter: blur(4px);
+    }
+    .modal { padding: 1.5rem; }
+    .modal textarea {
+      min-height: 200px;
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 0.8rem;
+    }
+    .preview {
+      max-height: 160px;
+      overflow: auto;
+      background: #f4f1ea;
+      border: 1px solid rgba(34, 30, 24, 0.09);
+      border-radius: 0.65rem;
+      padding: 0.7rem 0.85rem;
+      margin-top: 0.75rem;
+      font: 12px/1.55 "IBM Plex Mono", ui-monospace, monospace;
+      color: var(--ink-soft);
+    }
 
-  #tab-proxy .label-cell { display: inline-flex; align-items: center; gap: 0.5rem; }
-  #tab-proxy .seq-pill {
-    display: inline-flex; align-items: center; justify-content: center; min-width: 2rem;
-    height: 1.6rem; padding: 0 0.4rem; border-radius: 0.4rem; background: #f2efe9;
-    color: #575044; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    font-size: 0.72rem; font-weight: 700;
-  }
-  #tab-proxy .empty { padding: 3rem 1.5rem; text-align: center; color: var(--p-muted); font-size: 0.84rem; }
-  #tab-proxy .pager {
-    display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
-    margin-top: 0.9rem; padding-top: 0.85rem; border-top: 1px solid rgba(34, 30, 24, 0.07); flex-wrap: wrap;
-  }
-  #tab-proxy .pager select {
-    height: 2rem; border-radius: 0.5rem; border: 1.5px solid #dcd4c4; background: #fff;
-    padding: 0 0.5rem; font-size: 0.78rem; margin-left: 0.3rem; color: var(--ink);
-  }
-  #tab-proxy .pager .btn { height: 2rem; padding: 0 0.75rem; font-size: 0.76rem; border-radius: 0.5rem; }
-  #tab-proxy .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.78rem; }
+    /* Email layout */
+    .email-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 360px;
+      gap: 1.25rem;
+      align-items: start;
+    }
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1rem;
+      align-items: start;
+    }
 
-  #tab-proxy dialog {
-    border: 1px solid rgba(34, 30, 24, 0.12); border-radius: 1.15rem; padding: 0;
-    width: min(720px, calc(100vw - 28px)); background: #fcfbf9; color: var(--ink);
-    box-shadow: 0 28px 80px rgba(24, 21, 17, 0.28); font-family: var(--font-sans);
-  }
-  #tab-proxy dialog::backdrop { background: rgba(24, 21, 17, 0.45); backdrop-filter: blur(4px); }
-  #tab-proxy .modal { padding: 1.5rem; }
-  #tab-proxy .modal textarea {
-    min-height: 200px;
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.8rem;
-  }
-  #tab-proxy .preview {
-    max-height: 160px; overflow: auto; background: #f4f1ea;
-    border: 1px solid rgba(34, 30, 24, 0.09); border-radius: 0.65rem; padding: 0.7rem 0.85rem;
-    margin-top: 0.75rem; font: 12px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace;
-    color: var(--ink-soft);
-  }
+    /* Results file cards */
+    .result-file-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.85rem 1rem;
+      border-radius: 0.9rem;
+      border: 1.5px solid rgba(34, 30, 24, 0.09);
+      background: rgba(255, 255, 255, 0.92);
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.15s ease;
+      box-shadow: inset 0 1px 0 #fff, 0 4px 12px -4px rgba(34, 30, 24, 0.04);
+    }
+    .result-file-card:hover {
+      border-color: rgba(37, 116, 235, 0.4);
+      background: #fff;
+      transform: translateY(-1px);
+    }
+    .result-file-card.active {
+      border-color: #2574eb;
+      background: #eff8ff;
+      box-shadow: 0 0 0 3px rgba(37, 116, 235, 0.12);
+    }
 
-  /* Tailwind 工具类 (页面 JS/模板用到的少量) */
-  #tab-proxy .w-3\.5 { width: 0.875rem; }
-  #tab-proxy .h-3\.5 { height: 0.875rem; }
-  #tab-proxy .font-semibold { font-weight: 600; }
-  #tab-proxy .font-mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-  #tab-proxy .text-xs { font-size: 0.75rem; }
-  #tab-proxy .text-ink-900 { color: #181511; }
-  #tab-proxy .text-ink-500 { color: #6e675b; }
-  #tab-proxy .text-ink-700\/75 { color: rgba(63, 58, 51, 0.75); }
-  #tab-proxy .text-leaf-600 { color: #11804f; }
-  #tab-proxy .text-brand-600 { color: #1b62d1; }
-  #tab-proxy .text-sun-500 { color: #d97706; }
-  #tab-proxy .text-sun-600 { color: #b45309; }
-  #tab-proxy .text-rose-500 { color: #e11d48; }
-  #tab-proxy .accent-brand-600 { accent-color: #2574eb; }
+    /* Toast Notification */
+    .toast-item {
+      pointer-events: auto;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.65rem 0.95rem;
+      border-radius: 0.75rem;
+      background: rgba(24, 21, 17, 0.92);
+      color: #fcfbf9;
+      font-size: 0.78rem;
+      font-weight: 600;
+      box-shadow: 0 12px 28px rgba(24, 21, 17, 0.2);
+      backdrop-filter: blur(8px);
+      animation: toastIn 0.2s ease-out;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+    .toast-item.ok { border-left: 4px solid #10b981; }
+    .toast-item.bad { border-left: 4px solid #f43f5e; }
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
 
-  @media (max-width: 1024px) {
-    #tab-proxy .summary { grid-template-columns: repeat(3, 1fr); }
-    #tab-proxy .settings-grid { grid-template-columns: 1fr 1fr; }
-  }
-  @media (max-width: 640px) {
-    #tab-proxy .summary, #tab-proxy .settings-grid { grid-template-columns: 1fr; }
-  }
+    /* Scrollbars */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(63, 58, 51, 0.18);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(63, 58, 51, 0.32);
+    }
 
-  /* ================================================================
-     邮箱服务页 (照搬 grok-slim-register1 /email-settings 的设计)
-     复用 #tab-proxy 的暖纸色体系, 仅补充该页特有的布局
-     ================================================================ */
-  #tab-email {
-    --font-sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
-    --ink: #181511;
-    --ink-soft: #3f3a33;
-    --p-muted: #6e675b;
-    --brand: #2574eb;
-  }
-  #tab-email .shell {
-    max-width: 1600px;
-    margin: 0 auto;
-    padding: 1.5rem;
-    background-color: #f7f5ef;
-    background-image:
-      radial-gradient(1000px 480px at 0% 0%, rgba(37, 116, 235, 0.07), transparent 60%),
-      radial-gradient(900px 450px at 100% 5%, rgba(22, 156, 98, 0.06), transparent 55%),
-      linear-gradient(180deg, #fcfbf9 0%, #f3efe6 100%);
-    border-radius: 14px;
-    border: 1px solid var(--border);
-    color: var(--ink);
-    font-family: var(--font-sans);
-    font-size: 14px;
-    line-height: 1.5;
-  }
-  #tab-email .page-hero {
-    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
-    margin-bottom: 1.25rem; padding-bottom: 1rem;
-    border-bottom: 1px solid rgba(34, 30, 24, 0.08); flex-wrap: wrap;
-  }
-  #tab-email .page-hero h1 {
-    margin: 0; font-family: var(--font-sans); font-size: 1.45rem; font-weight: 700;
-    letter-spacing: -0.02em; color: var(--ink); line-height: 1.25;
-  }
-  #tab-email .page-hero p { margin: 0.25rem 0 0; color: var(--p-muted); font-size: 0.8125rem; }
-  #tab-email .layout {
-    display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 1.25rem; align-items: start;
-  }
-  #tab-email .panel {
-    background: rgba(255, 255, 255, 0.92);
-    border: 1px solid rgba(34, 30, 24, 0.09);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 8px 24px -6px rgba(34, 30, 24, 0.05);
-    border-radius: 1rem; padding: 1.35rem 1.5rem; margin-bottom: 1.25rem;
-  }
-  #tab-email .panel-head {
-    padding-bottom: 0.9rem; margin-bottom: 1.15rem; border-bottom: 1px solid rgba(34, 30, 24, 0.07);
-  }
-  #tab-email .panel h2 {
-    margin: 0; font-family: var(--font-sans); font-size: 1.08rem; font-weight: 700;
-    letter-spacing: -0.01em; color: var(--ink);
-  }
-  #tab-email .sub {
-    color: var(--p-muted); font-size: 0.78rem; margin: 0.2rem 0 0;
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  }
-  #tab-email .form-grid {
-    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; align-items: start;
-  }
-  #tab-email .form-field { display: flex; flex-direction: column; min-width: 0; }
-  #tab-email .form-field.full { grid-column: 1 / -1; }
-  #tab-email .form-field input:not([type="checkbox"]),
-  #tab-email .form-field select {
-    width: 100%; height: 2.5rem; border-radius: 0.65rem; border: 1.5px solid #dcd4c4;
-    background: #ffffff; padding: 0 0.8rem; font-size: 0.84rem; color: var(--ink);
-    outline: none; transition: border-color 0.15s ease, box-shadow 0.15s ease;
-  }
-  #tab-email .form-field input:hover, #tab-email .form-field select:hover { border-color: #c2b7a3; }
-  #tab-email .form-field input:focus, #tab-email .form-field select:focus {
-    border-color: var(--brand); box-shadow: 0 0 0 3px rgba(37, 116, 235, 0.13); background: #fff;
-  }
-  #tab-email .form-field > label:not(.check-inline) {
-    display: block; margin-bottom: 0.35rem; font-size: 0.75rem; font-weight: 700;
-    line-height: 1.2; color: #4a443a;
-  }
-  #tab-email .hint {
-    font-size: 0.72rem; color: var(--p-muted);
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; margin-top: 0.25rem;
-  }
-  #tab-email .check-inline {
-    display: flex; align-items: center; gap: 0.55rem; height: 2.5rem; margin: 0; padding: 0 0.85rem;
-    border-radius: 0.65rem; border: 1.5px solid #dcd4c4; background: #fcfbf9; cursor: pointer;
-    font-size: 0.82rem; font-weight: 600; line-height: 1.2; color: var(--ink);
-    user-select: none; transition: border-color 0.15s, background 0.15s; white-space: nowrap;
-  }
-  #tab-email .check-inline:hover { border-color: var(--brand); background: #f7fbff; }
-  #tab-email .check-inline input[type="checkbox"] {
-    width: 1rem; height: 1rem; margin: 0; padding: 0; accent-color: var(--brand); flex-shrink: 0;
-  }
-  #tab-email .grid-cols-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
-  #tab-email .btn {
-    display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
-    height: 2.375rem; border-radius: 0.65rem; padding: 0 0.9rem; font-size: 0.8125rem;
-    font-weight: 700; line-height: 1; border: 1.5px solid #dcd4c4; background: #ffffff;
-    color: #2a261f; cursor: pointer; user-select: none; white-space: nowrap;
-    box-shadow: 0 1px 2px rgba(34, 30, 24, 0.03);
-    transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
-  }
-  #tab-email .btn:hover:not(:disabled) {
-    border-color: #2574eb; color: #164ea8; background: #f7fbff;
-    box-shadow: 0 3px 10px rgba(37, 116, 235, 0.08);
-  }
-  #tab-email .btn:disabled { opacity: 0.45; cursor: not-allowed; }
-  #tab-email .btn.primary {
-    border-color: transparent;
-    background: linear-gradient(135deg, #2574eb 0%, #169c62 100%);
-    color: #ffffff; box-shadow: 0 4px 14px -2px rgba(37, 116, 235, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  }
-  #tab-email .btn.primary:hover:not(:disabled) {
-    border-color: transparent;
-    background: linear-gradient(135deg, #1b62d1 0%, #11804f 100%);
-    color: #ffffff;
-  }
-  #tab-email .actions {
-    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.6rem;
-    border-top: 1px solid rgba(34, 30, 24, 0.08); margin-top: 1.35rem; padding-top: 1.1rem;
-  }
-  #tab-email .actions-group { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
-  #tab-email .common { display: grid; gap: 0.9rem; }
-  #tab-email .warning {
-    display: flex; align-items: center; gap: 0.6rem;
-    border: 1px solid rgba(217, 119, 6, 0.28); background: #fffbeb; color: #92400e;
-    padding: 0.65rem 0.9rem; border-radius: 0.7rem; font-size: 0.78rem; line-height: 1.45;
-  }
-  #tab-email .warning::before { content: "⚠"; font-size: 0.9rem; flex-shrink: 0; }
-  #tab-email .message {
-    min-height: 1.25rem; font-size: 0.76rem; margin-top: 0.5rem;
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: #6e675b;
-  }
-  #tab-email .message.ok { color: #11804f; font-weight: 600; }
-  #tab-email .message.bad { color: #e11d48; font-weight: 600; }
-  @media (max-width: 1024px) {
-    #tab-email .layout { grid-template-columns: 1fr; }
-  }
-  @media (max-width: 640px) {
-    #tab-email .form-grid { grid-template-columns: 1fr; }
-  }
-</style>
+    @media (max-width: 1024px) {
+      .summary { grid-template-columns: repeat(3, 1fr); }
+      .settings-grid { grid-template-columns: 1fr 1fr; }
+      .email-layout { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 640px) {
+      .summary, .settings-grid, .form-grid { grid-template-columns: 1fr; }
+    }
+  </style>
 </head>
-<body>
-<header>
-  <h1>OutlookRegister 控制台</h1>
-  <span id="status-badge" class="badge idle">空闲</span>
-  <span class="url" id="ws-hint">WebSocket 未连接</span>
-  <div class="user-area">
-    <span id="ui-user" class="user-name"></span>
-    <button id="btn-pwd" class="btn mini" type="button">改密</button>
-    <a id="btn-logout" class="btn mini" href="/logout">退出</a>
-  </div>
-</header>
-<div id="default-pwd-banner" class="warn-banner" hidden>
-  ⚠ 当前仍使用默认密码 <b>admin / admin</b>，存在安全风险，<a href="#" id="banner-pwd">立即修改</a>
-</div>
+<body class="h-full font-sans antialiased">
+  <div class="min-h-full flex flex-col">
+    <!-- Unified Global Navigation Header (grok-slim-register1 _nav.html style) -->
+    <header class="sticky top-0 z-40 border-b border-ink-900/10 bg-paper-50/90 backdrop-blur-xl">
+      <div class="max-w-[1600px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+        <!-- Left: Brand Identity -->
+        <a href="#" id="brandHomeLink" class="inline-flex items-center gap-3 group text-left no-underline shrink-0">
+          <svg class="h-10 w-10 rounded-xl shadow-soft shrink-0 transition-transform duration-200 group-hover:scale-105 ring-2 ring-white/80" viewBox="12 12 232 232" role="img" aria-label="Outlook Register">
+            <defs>
+              <linearGradient id="nav-bg" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#1e40af"/>
+                <stop offset="48%" stop-color="#2574eb"/>
+                <stop offset="100%" stop-color="#10b981"/>
+              </linearGradient>
+              <radialGradient id="nav-glow" cx="0.2" cy="0.15" r="0.7">
+                <stop offset="0%" stop-color="#93c5fd" stop-opacity="0.38"/>
+                <stop offset="100%" stop-color="#2574eb" stop-opacity="0"/>
+              </radialGradient>
+            </defs>
+            <rect x="12" y="12" width="232" height="232" rx="52" fill="url(#nav-bg)"/>
+            <rect x="12" y="12" width="232" height="232" rx="52" fill="url(#nav-glow)"/>
+            <path d="M 46 194 A 136 136 0 0 1 204 54" fill="none" stroke="#ffffff" stroke-opacity="0.14" stroke-width="4" stroke-linecap="round"/>
+            <circle cx="124" cy="131" r="54" fill="none" stroke="#ffffff" stroke-width="26"/>
+            <path d="M 190 48 Q 190 69 211 69 Q 190 69 190 90 Q 190 69 169 69 Q 190 69 190 48 Z" fill="#a7f3d0"/>
+          </svg>
+          <div class="leading-tight">
+            <div class="flex items-center gap-2">
+              <span class="font-display text-lg font-bold tracking-tight text-ink-900">Outlook 注册工作台</span>
+              <span class="hidden sm:inline-flex items-center rounded-md bg-paper-200/80 px-1.5 py-0.5 text-[10px] font-mono font-semibold text-ink-700/75 border border-ink-900/5">CONSOLE</span>
+            </div>
+            <p class="text-[11px] text-ink-700/60 font-mono m-0 mt-0.5">自动化注册 · 临时邮箱绑密 · 代理租约 · OAuth2 令牌</p>
+          </div>
+        </a>
 
-<!-- 修改密码弹窗 -->
-<div id="pwd-modal" class="modal-mask" hidden>
-  <div class="modal-card">
-    <div class="modal-head">
-      <h3>修改登录密码</h3>
-      <button id="pwd-close" class="btn mini" type="button">✕</button>
-    </div>
-    <label>当前密码<input id="cp-old" type="password" autocomplete="current-password" placeholder="输入当前密码"></label>
-    <label>用户名<input id="cp-user" type="text" autocomplete="username" placeholder="登录用户名（默认 admin）"></label>
-    <label>新密码<input id="cp-new" type="password" autocomplete="new-password" placeholder="至少 8 位"></label>
-    <label>确认新密码<input id="cp-new2" type="password" autocomplete="new-password" placeholder="再输入一次"></label>
-    <div id="cp-msg" class="cp-msg"></div>
-    <button id="cp-submit" class="btn primary" type="button" style="width:100%">确认修改</button>
-  </div>
-</div>
-
-<nav>
-  <button class="tab active" data-tab="task">任务</button>
-  <button class="tab" data-tab="config">配置</button>
-  <button class="tab" data-tab="proxy">代理池</button>
-  <button class="tab" data-tab="email">邮箱</button>
-  <button class="tab" data-tab="results">结果</button>
-</nav>
-
-<main>
-  <!-- 任务 -->
-  <section id="tab-task">
-    <div class="stats">
-      <div class="card"><div class="label">状态</div><b id="st-state">-</b></div>
-      <div class="card"><div class="label">已提交 / 总数</div><b id="st-submitted">0</b> / <span id="st-max">0</span></div>
-      <div class="card"><div class="label">成功</div><b id="st-success" class="green">0</b></div>
-      <div class="card"><div class="label">失败</div><b id="st-failed" class="red">0</b></div>
-      <div class="card"><div class="label">并发</div><b id="st-conc">0</b></div>
-    </div>
-    <div class="controls">
-      <button id="btn-start" class="btn primary">开始注册</button>
-      <button id="btn-stop" class="btn danger" disabled>停止</button>
-      <button id="btn-clear" class="btn">清空日志</button>
-    </div>
-    <div id="log-box"></div>
-  </section>
-
-  <!-- 配置 -->
-  <section id="tab-config" hidden>
-    <fieldset><legend>config.json</legend><div id="config-form"></div></fieldset>
-    <div class="controls">
-      <button id="btn-save-config" class="btn primary">保存配置</button>
-      <button id="btn-reload-config" class="btn">放弃修改</button>
-    </div>
-  </section>
-
-  <!-- 代理池 (完全照搬 grok-slim-register1 注册代理池页面) -->
-  <section id="tab-proxy" hidden>
-    <div class="shell">
-      <div class="page-hero">
-        <div>
-          <h1>注册代理池</h1>
-          <p>按任务分配独立租约；注册全流程锁定同一出口 IP，多任务按顺序轮询调度。</p>
-        </div>
-        <div class="actions">
-          <button id="exportBtn" class="btn">
-            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            <span>导出脱敏清单</span>
+        <!-- Center: Global Segmented Navigation -->
+        <nav aria-label="全局导航" class="flex items-center gap-1 p-1 rounded-xl bg-paper-100/95 border border-ink-900/8 shadow-inner overflow-x-auto">
+          <button type="button" data-tab="task" class="tab nav-pill active inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold whitespace-nowrap border-0 cursor-pointer">
+            <svg class="w-3.5 h-3.5 shrink-0 opacity-85" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+            <span>注册控制台</span>
           </button>
-          <button id="addBtn" class="btn primary">
-            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            <span>添加代理</span>
+          <button type="button" data-tab="email" class="tab nav-pill inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold whitespace-nowrap border-0 cursor-pointer">
+            <svg class="w-3.5 h-3.5 shrink-0 opacity-85" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+            <span>邮箱配置</span>
           </button>
+          <button type="button" data-tab="proxy" class="tab nav-pill inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold whitespace-nowrap border-0 cursor-pointer">
+            <svg class="w-3.5 h-3.5 shrink-0 opacity-85" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            <span>注册代理池</span>
+          </button>
+          <button type="button" data-tab="results" class="tab nav-pill inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold whitespace-nowrap border-0 cursor-pointer">
+            <svg class="w-3.5 h-3.5 shrink-0 opacity-85" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            <span>结果中心</span>
+          </button>
+        </nav>
+
+        <!-- Right: Status / Quick Action -->
+        <div class="flex items-center gap-2.5 shrink-0">
+          <div id="status-badge" class="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-mono font-semibold border border-ink-900/10 bg-white shadow-sm">
+            <span id="statusDot" class="h-2 w-2 rounded-full bg-slate-400"></span>
+            <span id="statusText" class="text-ink-800">IDLE</span>
+          </div>
+          <span id="ui-user" class="hidden md:inline-block text-xs font-mono text-ink-700/70 px-1"></span>
+          <button type="button" id="btn-pwd" title="修改登录密码"
+                  class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold border border-ink-900/10 bg-white text-ink-700 hover:border-brand-500 hover:text-brand-600 shadow-sm transition-colors cursor-pointer">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+            <span class="hidden sm:inline">改密</span>
+          </button>
+          <a id="btn-logout" href="/logout" title="退出登录"
+             class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold border border-ink-900/10 bg-white text-ink-700 hover:border-rose-500 hover:text-rose-600 shadow-sm transition-colors no-underline">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            <span class="hidden sm:inline">退出</span>
+          </a>
         </div>
       </div>
 
-      <div id="directWarning" class="warning" style="margin-bottom: 1.15rem;" hidden>代理池为空，当前注册任务将使用 config.json 配置的代理（留空则直连）。点击右上角「添加代理」即可导入代理池。</div>
+      <!-- 默认密码警告条（admin/admin 未改时显示） -->
+      <div id="default-pwd-banner" hidden class="border-t border-amber-300/40 bg-amber-50">
+        <div class="max-w-[1600px] mx-auto px-4 sm:px-6 py-1.5 flex items-center justify-center gap-2 text-xs text-amber-800">
+          <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+          <span>当前仍使用默认密码 <b class="font-mono">admin / admin</b>，存在安全风险，</span>
+          <a href="#" id="banner-pwd" class="underline font-semibold hover:text-amber-900">立即修改</a>
+        </div>
+      </div>
+    </header>
 
-      <section id="summary" class="summary"></section>
-
-      <section class="panel">
-        <div class="panel-head">
+    <!-- 修改密码弹窗 -->
+    <div id="pwd-modal" hidden class="fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(24,21,17,0.45); backdrop-filter: blur(4px);">
+      <div class="w-full max-w-sm rounded-2xl bg-white shadow-2xl border border-ink-900/10 p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="m-0 text-base font-bold text-ink-900">修改登录密码</h3>
+          <button type="button" id="pwd-close" class="w-7 h-7 inline-flex items-center justify-center rounded-lg text-ink-500 hover:bg-paper-100 hover:text-ink-900 transition-colors border-0 bg-transparent cursor-pointer">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div class="space-y-3.5">
           <div>
-            <h2>全局调度策略</h2>
-            <p class="sub">修改策略仅影响新分配租约，正在注册中的任务不会中途切换 IP。</p>
+            <label class="field-label" for="cp-old">当前密码</label>
+            <input id="cp-old" type="password" autocomplete="current-password" class="field" placeholder="输入当前密码">
           </div>
-          <button id="saveSettings" class="btn primary">保存策略</button>
+          <div>
+            <label class="field-label" for="cp-user">用户名</label>
+            <input id="cp-user" type="text" autocomplete="username" class="field" placeholder="登录用户名（默认 admin）">
+          </div>
+          <div>
+            <label class="field-label" for="cp-new">新密码</label>
+            <input id="cp-new" type="password" autocomplete="new-password" class="field" placeholder="至少 8 位">
+          </div>
+          <div>
+            <label class="field-label" for="cp-new2">确认新密码</label>
+            <input id="cp-new2" type="password" autocomplete="new-password" class="field" placeholder="再输入一次">
+          </div>
+          <div id="cp-msg" class="message"></div>
+          <button type="button" id="cp-submit" class="btn btn-primary w-full h-10 text-sm">确认修改</button>
         </div>
-        <div class="settings-grid">
-          <div class="form-field">
-            <label for="strategy">调度策略</label>
-            <select id="strategy">
-              <option value="round_robin">顺序轮询 (Round Robin)</option>
-              <option value="random">随机挑选 (Random)</option>
-              <option value="least_used">最少占用 (Least Used)</option>
-            </select>
+      </div>
+    </div>
+
+    <!-- =====================================================================
+         SECTION 1: 注册控制台 (主工作台 - 对齐 grok-slim-register1 index.html)
+         ===================================================================== -->
+    <main id="tab-task" class="flex-1 max-w-[1600px] w-full mx-auto px-4 sm:px-6 py-6 space-y-5">
+      <!-- Symmetrical 5-Card KPI Stats Grid -->
+      <section class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5 sm:gap-4">
+        <article class="stat-card col-span-2 sm:col-span-1">
+          <div class="flex items-start justify-between gap-2">
+            <p class="text-[11px] uppercase tracking-[0.14em] text-ink-700/60 font-bold m-0">注册成功</p>
+            <span class="h-8 w-8 rounded-xl bg-gradient-to-br from-leaf-50 to-leaf-100/80 text-leaf-600 border border-leaf-500/20 shadow-sm grid place-items-center shrink-0">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 13V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h8"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/><path d="m16 19 2 2 4-4"/></svg>
+            </span>
           </div>
-          <div class="form-field">
-            <label for="defaultScheme">缺省协议</label>
-            <select id="defaultScheme">
-              <option value="http">HTTP</option>
-              <option value="https">HTTPS</option>
-              <option value="socks5">SOCKS5</option>
-              <option value="socks5h">SOCKS5H</option>
-            </select>
+          <p id="st-success" class="mt-1.5 mb-0 font-display text-3xl font-bold text-leaf-600 tabular-nums">0</p>
+          <p class="text-xs text-ink-700/55 font-mono mt-1 mb-0">目标 <span id="st-max" class="font-semibold text-ink-800">0</span></p>
+        </article>
+
+        <article class="stat-card">
+          <div class="flex items-start justify-between gap-2">
+            <p class="text-[11px] uppercase tracking-[0.14em] text-ink-700/60 font-bold m-0">过程失败</p>
+            <span class="h-8 w-8 rounded-xl bg-gradient-to-br from-rose-50 to-rose-500/10 text-rose-500 border border-rose-500/20 shadow-sm grid place-items-center shrink-0">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m14.5 9-5 5"/><path d="m9.5 9 5 5"/></svg>
+            </span>
           </div>
-          <div class="form-field">
-            <label for="defaultConcurrency">每条默认并发上限</label>
-            <input id="defaultConcurrency" type="number" min="1" max="64" value="1">
+          <p id="st-failed" class="mt-1.5 mb-0 font-display text-3xl font-bold text-rose-500 tabular-nums">0</p>
+          <p class="text-xs text-ink-700/55 font-mono mt-1 mb-0">风控或中断退出</p>
+        </article>
+
+        <article class="stat-card">
+          <div class="flex items-start justify-between gap-2">
+            <p class="text-[11px] uppercase tracking-[0.14em] text-ink-700/60 font-bold m-0">已提交任务</p>
+            <span class="h-8 w-8 rounded-xl bg-gradient-to-br from-brand-50 to-brand-100/80 text-brand-600 border border-brand-500/20 shadow-sm grid place-items-center shrink-0">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
+            </span>
           </div>
-          <div class="form-field">
-            <label for="alignGeo">浏览器指纹地区</label>
-            <label class="check-inline">
-              <input id="alignGeo" type="checkbox" checked>
-              <span>根据出口地区自动对齐指纹</span>
-            </label>
+          <p id="st-submitted" class="mt-1.5 mb-0 font-display text-3xl font-bold text-brand-600 tabular-nums">0</p>
+          <p class="text-xs text-ink-700/55 font-mono mt-1 mb-0">在途执行 <span id="st-inflight" class="font-semibold text-brand-600">0</span></p>
+        </article>
+
+        <article class="stat-card">
+          <div class="flex items-start justify-between gap-2">
+            <p class="text-[11px] uppercase tracking-[0.14em] text-ink-700/60 font-bold m-0">并发通道</p>
+            <span class="h-8 w-8 rounded-xl bg-gradient-to-br from-brand-50 to-brand-100/80 text-brand-600 border border-brand-500/20 shadow-sm grid place-items-center shrink-0">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            </span>
           </div>
-        </div>
-        <div id="settingsMessage" class="message"></div>
+          <p id="st-conc" class="mt-1.5 mb-0 font-display text-3xl font-bold text-brand-600 tabular-nums">1</p>
+          <p class="text-xs text-ink-700/55 font-mono mt-1 mb-0">Camoufox 浏览器池</p>
+        </article>
+
+        <article class="stat-card">
+          <div class="flex items-start justify-between gap-2">
+            <p class="text-[11px] uppercase tracking-[0.14em] text-ink-700/60 font-bold m-0">状态 · 耗时</p>
+            <span class="h-8 w-8 rounded-xl bg-gradient-to-br from-sun-50 to-sun-500/15 text-sun-500 border border-sun-500/25 shadow-sm grid place-items-center shrink-0">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5"/><path d="M10 2h4"/></svg>
+            </span>
+          </div>
+          <p id="st-elapsed" class="mt-1.5 mb-0 font-display text-3xl font-bold text-sun-500 tabular-nums">0s</p>
+          <p class="text-xs text-ink-700/55 font-mono mt-1 mb-0"><span id="st-state" class="font-semibold text-ink-800">空闲</span> · <span id="st-suffix">@outlook.com</span></p>
+        </article>
       </section>
 
-      <section class="panel">
-        <div class="panel-head" style="margin-bottom: 0.85rem;">
-          <div>
-            <h2>代理节点列表</h2>
-            <p class="sub">代理认证凭据仅保存在服务端本地文件，前端与 API 永不回传明文密码。</p>
+      <!-- Progress & Pipeline Banner -->
+      <section class="panel rounded-2xl p-4 sm:p-5">
+        <div class="flex items-center justify-between gap-4 mb-2.5 flex-wrap">
+          <div class="flex items-center gap-2.5">
+            <h2 class="font-display font-bold text-ink-900 text-base m-0">任务总进度</h2>
+            <span class="text-xs font-mono text-ink-700/65 bg-paper-100 border border-ink-900/5 rounded-full px-2.5 py-0.5">
+              已完成 <span id="st-done-inline" class="text-leaf-600 font-bold">0</span> / 总任务 <span id="st-max-inline" class="text-ink-900 font-bold">0</span>
+            </span>
+          </div>
+          <div class="flex items-center gap-4">
+            <span class="text-xs font-mono text-ink-700/60 hidden sm:inline">落盘目录：<span class="text-ink-800 font-medium">Results/*.txt</span></span>
+            <span id="progressLabel" class="font-mono text-sm font-bold text-brand-600 bg-brand-50 border border-brand-500/15 px-2.5 py-0.5 rounded-full tabular-nums">0%</span>
           </div>
         </div>
-
-        <div class="toolbar-bar">
-          <div class="toolbar-filters">
-            <input id="search" placeholder="搜索节点标签、主机地址或出口国家/地区…">
-            <select id="status">
-              <option value="">全部节点状态</option>
-              <option value="healthy">健康 (Healthy)</option>
-              <option value="untested">未测试 (Untested)</option>
-              <option value="unhealthy">不可用 (Unhealthy)</option>
-              <option value="busy">占用中 (Busy)</option>
-              <option value="cooldown">冷却中 (Cooldown)</option>
-              <option value="disabled">已停用 (Disabled)</option>
-            </select>
-          </div>
-          <div class="actions">
-            <button id="enableSelected" class="btn">批量启用</button>
-            <button id="disableSelected" class="btn">批量停用</button>
-            <button id="setConcurrencySelected" class="btn">设置并发</button>
-            <button id="testSelected" class="btn">连通测试</button>
-            <button id="deleteSelected" class="btn danger">批量删除</button>
-            <button id="dedupeBtn" class="btn danger">删除重复</button>
-          </div>
+        <div class="h-3 rounded-full bg-paper-200/90 overflow-hidden p-0.5 border border-ink-900/5 shadow-inner">
+          <div id="progressBar" class="progress-bar h-full w-0 rounded-full"></div>
         </div>
-
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th style="width: 40px;"><input id="checkAll" type="checkbox" class="accent-brand-600"></th>
-                <th># / 节点标签</th>
-                <th>脱敏代理地址</th>
-                <th>健康状态</th>
-                <th>出口 IP / 地区</th>
-                <th>当前占用 / 上限</th>
-                <th>成功 / 失败 / MARKED</th>
-                <th style="text-align: right;">快捷操作</th>
-              </tr>
-            </thead>
-            <tbody id="rows"></tbody>
-          </table>
-          <div id="empty" class="empty" hidden>暂无代理节点。当前注册会使用 config.json 配置的代理（留空直连），也可点击右上角「添加代理」批量导入。</div>
+        <div id="pipelineBox" class="mt-3.5 rounded-xl bg-gradient-to-r from-paper-100/90 via-white/80 to-paper-100/90 border border-ink-900/8 px-3.5 py-2.5 text-xs font-mono text-ink-700/75 flex items-center gap-3 flex-wrap">
+          <span class="inline-flex items-center gap-1.5 rounded-md bg-ink-900 text-paper-50 px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] font-semibold shrink-0">
+            <span id="pipelineDot" class="h-1.5 w-1.5 rounded-full bg-leaf-500"></span>
+            流水线状态
+          </span>
+          <div id="pipelineSteps" class="text-ink-800 font-medium min-w-0 flex-1 truncate">空闲 · 流程：启动 Camoufox → 填写账号密码 → 国家生日姓名 → 人机验证 → 绑定辅助邮箱 → OAuth2 令牌</div>
         </div>
-
-        <div class="pager">
-          <span id="pageInfo" class="sub"></span>
-          <div class="actions">
-            <label class="text-xs text-ink-700/75 font-mono">每页
-              <select id="perPage">
-                <option>20</option>
-                <option selected>50</option>
-                <option>100</option>
-                <option>200</option>
-                <option>500</option>
-                <option>1000</option>
-                <option>2000</option>
-              </select>
-            </label>
-            <button id="refreshBtn" class="btn">刷新</button>
-            <button id="prev" class="btn">← 上一页</button>
-            <button id="next" class="btn">下一页 →</button>
-          </div>
-        </div>
-        <div id="listMessage" class="message"></div>
       </section>
-    </div>
 
-    <dialog id="importDialog">
-      <div class="modal">
-        <div class="panel-head" style="margin-bottom: 1rem;">
-          <div>
-            <h2 style="margin:0; font-size: 1.15rem;">批量添加代理</h2>
-            <p class="sub">每行一条，支持标准 URL、user:pass@host:port 以及 {session} / {account} 动态占位符。</p>
-          </div>
-          <button id="closeDialog" class="btn btn-sm">关闭</button>
-        </div>
-        <div class="settings-grid" style="grid-template-columns:1fr 1fr; margin-bottom: 0.9rem;">
-          <div class="form-field">
-            <label for="importMode">导入模式</label>
-            <select id="importMode">
-              <option value="append">追加并自动去重</option>
-              <option value="replace">覆盖整个代理池</option>
-            </select>
-          </div>
-          <div class="form-field">
-            <label for="proxyFile">从 TXT 文件读取（最大 5 MB）</label>
-            <input id="proxyFile" type="file" accept=".txt,text/plain">
-          </div>
-        </div>
-        <div class="form-field">
-          <label for="proxyText">粘贴代理列表</label>
-          <textarea id="proxyText" placeholder="http://user:pass@host:port&#10;socks5h://host:port&#10;user-session-{session}:pass@host:port"></textarea>
-        </div>
-        <div id="preview" class="preview">等待解析预览…</div>
-        <div class="actions" style="margin-top: 1rem; justify-content: flex-end;">
-          <button id="previewBtn" class="btn">解析预览</button>
-          <button id="importBtn" class="btn primary" disabled>确认导入</button>
-        </div>
-        <div id="importMessage" class="message"></div>
-      </div>
-    </dialog>
-  </section>
-
-  <!-- 邮箱服务 (cf_tempmail, 照搬 grok-slim-register1 email_settings 的 Cloudflare 表单) -->
-  <section id="tab-email" hidden>
-    <div class="shell">
-      <div class="page-hero">
-        <div>
-          <h1>邮箱服务配置</h1>
-          <p>Cloudflare 临时邮箱 (dreamhunter2333/cloudflare_temp_email)。修改配置后请先保存并执行真实连接测试。</p>
-        </div>
-      </div>
-
-      <div class="layout">
-        <section class="panel">
-          <div class="panel-head">
-            <h2>Cloudflare 临时邮箱</h2>
-            <p class="sub">dreamhunter · cf_tempmail</p>
-          </div>
-
-          <div class="form-grid">
-            <div class="form-field full">
-              <label for="cfBase">Worker 地址</label>
-              <input id="cfBase" placeholder="https://mail.example.workers.dev">
+      <!-- Main Split Workspace: Left Control & Config / Right Terminal & Results -->
+      <div class="grid lg:grid-cols-12 gap-5 min-w-0">
+        <!-- Left column -->
+        <section class="lg:col-span-4 space-y-4 min-w-0">
+          <div class="panel rounded-2xl overflow-hidden">
+            <!-- Sub-tabs: 运行控制 / 系统配置 -->
+            <div class="flex gap-1 p-1.5 bg-paper-100/90 border-b border-ink-900/8">
+              <button type="button" data-subtab="run" class="subtab-btn active flex-1 rounded-xl px-3 py-2 text-xs sm:text-sm text-ink-700/75 inline-flex items-center justify-center gap-1.5 border-0 bg-transparent cursor-pointer">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                <span>运行控制</span>
+              </button>
+              <button type="button" data-subtab="config" class="subtab-btn flex-1 rounded-xl px-3 py-2 text-xs sm:text-sm text-ink-700/75 inline-flex items-center justify-center gap-1.5 border-0 bg-transparent cursor-pointer">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                <span>系统配置</span>
+              </button>
             </div>
-            <div class="form-field">
-              <label for="cfSiteToken">站点密码 (Site Password)</label>
-              <input id="cfSiteToken" type="password" placeholder="部署设置 PASSWORDS 时填写">
-            </div>
-            <div class="form-field">
-              <label for="cfAdminKey">管理员密码（优先使用）</label>
-              <input id="cfAdminKey" type="password" placeholder="填了走管理接口, 不受站点密码限制">
-              <span class="hint">留空则走用户模式 (需部署开启 ENABLE_USER_CREATE_EMAIL)</span>
-            </div>
-            <div class="form-field">
-              <label>域名行为策略</label>
-              <div class="grid-cols-2">
-                <label class="check-inline">
-                  <input id="cfAutoDomain" type="checkbox">
-                  <span>服务端自动选域</span>
-                </label>
-                <label class="check-inline">
-                  <input id="cfRandomSubdomain" type="checkbox">
-                  <span>启用随机子域</span>
-                </label>
+
+            <!-- SUBTAB 1: RUN PANEL -->
+            <div id="subtab-run" class="p-5 space-y-4">
+              <div class="flex items-center justify-between">
+                <h2 class="font-display font-bold text-ink-900 text-base m-0">启动参数</h2>
+                <span class="text-[11px] font-mono text-ink-700/50">Camoufox 反指纹引擎</span>
               </div>
-              <span class="hint">自动选域: 创建地址不传 domain, 由 Worker 按部署配置分配; 与下方域名池二选一</span>
-            </div>
-            <div class="form-field">
-              <label for="cfDomains">域名池 (逗号分隔, 留空同自动选域)</label>
-              <input id="cfDomains" placeholder="example.com,example.org">
-              <span class="hint">注册时随机抽取一个; 填了则忽略「服务端自动选域」</span>
-            </div>
-            <div class="form-field">
-              <label for="cfRetries">请求重试次数</label>
-              <input id="cfRetries" type="number" min="1" max="20" value="5">
-            </div>
-          </div>
 
-          <div class="actions">
-            <div class="actions-group">
-              <button id="saveEmail" class="btn primary">保存配置</button>
-              <button id="testEmail" class="btn">测试当前服务</button>
+              <div class="space-y-3.5">
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="field-label" for="quick-max-tasks">创建账号目标数</label>
+                    <input id="quick-max-tasks" type="number" min="1" max="100000" value="1" class="field font-mono" />
+                  </div>
+                  <div>
+                    <label class="field-label" for="quick-conc">并发浏览器数</label>
+                    <input id="quick-conc" type="number" min="1" max="32" value="1" class="field font-mono" />
+                  </div>
+                </div>
+
+                <div>
+                  <label class="field-label" for="quick-suffix">注册域名后缀</label>
+                  <select id="quick-suffix" class="field font-mono">
+                    <option value="@outlook.com">@outlook.com (推荐)</option>
+                    <option value="@hotmail.com">@hotmail.com</option>
+                  </select>
+                </div>
+
+                <label class="check-card">
+                  <input id="quick-oauth2" type="checkbox" />
+                  <span>
+                    <strong class="font-bold text-ink-900">注册后自动获取 OAuth2 令牌</strong>
+                    <small class="block text-[11px] text-ink-700/55 font-mono mt-0.5 leading-relaxed">授权获取 refresh_token 与 access_token，结果独立落盘至 secured_tokens.txt</small>
+                  </span>
+                </label>
+
+                <div class="grid grid-cols-2 gap-3 pt-1">
+                  <button id="btn-start" type="button" class="btn btn-primary py-2.5 text-sm">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                    <span>开始注册</span>
+                  </button>
+                  <button id="btn-stop" type="button" class="btn btn-danger-solid py-2.5 text-sm" disabled>
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>
+                    <span>停止任务</span>
+                  </button>
+                </div>
+              </div>
+
+              <div id="runMessage" class="message"></div>
+
+              <!-- Environment Status Overview Card -->
+              <div class="rounded-2xl bg-paper-100/85 border border-ink-900/8 p-3.5 text-xs text-ink-700/75 space-y-2">
+                <div class="flex items-center justify-between pb-1.5 border-b border-ink-900/5">
+                  <span class="text-[11px] uppercase tracking-[0.12em] font-bold text-ink-700/50">运行环境概览</span>
+                  <span class="text-[10px] font-mono text-ink-700/45">实时同步</span>
+                </div>
+                <div class="flex justify-between items-center gap-2">
+                  <span class="text-ink-700/65">临时邮箱服务</span>
+                  <span id="env-cf-worker" class="font-mono font-semibold text-ink-800 truncate max-w-[60%] text-right">—</span>
+                </div>
+                <div class="flex justify-between items-center gap-2">
+                  <span class="text-ink-700/65">域名分配策略</span>
+                  <span id="env-cf-domain" class="font-mono font-semibold text-ink-800 truncate max-w-[60%] text-right">—</span>
+                </div>
+                <div class="flex justify-between items-center gap-2">
+                  <span class="text-ink-700/65">代理调度模式</span>
+                  <span id="env-proxy-mode" class="font-mono font-semibold text-ink-800 truncate max-w-[60%] text-right">—</span>
+                </div>
+                <div class="flex justify-between items-center gap-2">
+                  <span class="text-ink-700/65">浏览器指纹</span>
+                  <span id="env-camoufox" class="font-mono text-ink-800 truncate max-w-[60%] text-right">—</span>
+                </div>
+                <div class="pt-1.5 border-t border-ink-900/5 grid grid-cols-3 gap-2">
+                  <button type="button" data-jump-tab="email" class="flex flex-col items-center justify-center rounded-xl bg-white border border-ink-900/8 py-2 px-2 hover:border-brand-500 hover:bg-brand-50/30 transition-colors cursor-pointer group">
+                    <span class="text-[10px] text-ink-700/55">邮箱配置</span>
+                    <span class="font-mono text-[11px] font-bold text-brand-600 group-hover:underline mt-0.5">去设置 →</span>
+                  </button>
+                  <button type="button" data-jump-tab="proxy" class="flex flex-col items-center justify-center rounded-xl bg-white border border-ink-900/8 py-2 px-2 hover:border-brand-500 hover:bg-brand-50/30 transition-colors cursor-pointer group">
+                    <span class="text-[10px] text-ink-700/55">注册代理</span>
+                    <span id="env-proxy-count" class="font-mono text-[11px] font-bold text-brand-600 truncate max-w-full group-hover:underline mt-0.5">去管理 →</span>
+                  </button>
+                  <button type="button" data-jump-tab="results" class="flex flex-col items-center justify-center rounded-xl bg-white border border-ink-900/8 py-2 px-2 hover:border-brand-500 hover:bg-brand-50/30 transition-colors cursor-pointer group">
+                    <span class="text-[10px] text-ink-700/55">结果中心</span>
+                    <span class="font-mono text-[11px] font-bold text-brand-600 group-hover:underline mt-0.5">去查看 →</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- SUBTAB 2: CONFIG PANEL -->
+            <div id="subtab-config" hidden class="p-4 space-y-3">
+              <div class="flex items-center justify-between gap-2">
+                <div>
+                  <h2 class="font-display font-bold text-ink-900 text-sm m-0">系统与引擎配置</h2>
+                  <p class="text-[10px] text-ink-700/50 font-mono m-0 mt-0.5">持久化写入 config.json（自动备份 .bak）</p>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <button type="button" id="btn-reload-config" class="btn btn-sm">放弃修改</button>
+                  <button type="button" id="btn-save-config" class="btn btn-primary btn-sm">保存配置</button>
+                </div>
+              </div>
+              <div id="configMessage" class="message" style="margin-top:0"></div>
+              <div id="config-form" class="space-y-3"></div>
             </div>
           </div>
-          <div id="emailMessage" class="message"></div>
         </section>
 
-        <aside class="panel">
-          <div class="panel-head">
-            <h2>对接说明</h2>
-            <p class="sub">cloudflare_temp_email 部署要求</p>
+        <!-- Right column: Terminal + Quick Results -->
+        <section class="lg:col-span-8 space-y-4 min-w-0">
+          <div class="panel rounded-2xl p-5">
+            <div class="flex items-center justify-between mb-3.5 gap-3 flex-wrap">
+              <div class="flex items-center gap-2.5">
+                <h2 class="font-display font-bold text-ink-900 text-base m-0">实时运行日志</h2>
+                <span id="ws-hint" class="badge">WebSocket 连接中…</span>
+              </div>
+              <div class="flex items-center gap-2.5">
+                <label class="inline-flex items-center gap-1.5 text-xs text-ink-700/75 font-mono cursor-pointer select-none bg-paper-100/80 px-2.5 py-1.5 rounded-lg border border-ink-900/5">
+                  <input id="auto-scroll" type="checkbox" checked class="rounded border-paper-300 text-brand-500 accent-brand-600 m-0" />
+                  <span>自动滚动</span>
+                </label>
+                <button id="btn-clear" type="button" class="btn btn-sm font-mono">清空日志</button>
+              </div>
+            </div>
+
+            <div class="min-w-0 term-window">
+              <div class="term-header">
+                <div class="flex items-center gap-2">
+                  <span class="term-dots"><i class="bg-rose-400"></i><i class="bg-amber-400"></i><i class="bg-emerald-400"></i></span>
+                  <span class="text-[11px] uppercase tracking-[0.12em] font-bold text-ink-800">主流程引擎</span>
+                </div>
+                <span class="text-[10px] font-mono text-ink-700/55">Camoufox · Outlook Signup · CF TempMail · OAuth2</span>
+              </div>
+              <div id="log-box">
+                <div id="log-empty-placeholder" class="text-ink-700/40 py-10 text-center font-mono text-xs">等待主流程日志输出…</div>
+              </div>
+            </div>
           </div>
-          <div class="common">
-            <div class="warning">管理员密码与站点密码仅保存在服务端 config.json, 页面刷新后不回显, 重新输入留空即保留原值。</div>
-            <p class="hint" style="line-height: 1.6; margin: 0;">
-              · 管理员模式: /admin/new_address 建地址, /admin/mails 收件, 测试地址用后即删<br>
-              · 用户模式: /api/new_address 建地址, /api/mails + JWT 收件<br>
-              · 「启用随机子域」需 Worker 部署开启随机子域支持<br>
-              · 测试会真实创建一个临时地址验证链路
-            </p>
+
+          <div class="panel rounded-2xl p-5">
+            <div class="flex items-center justify-between gap-3 mb-3.5 flex-wrap">
+              <div>
+                <h2 class="font-display font-bold text-ink-900 text-base m-0">结果文件速览</h2>
+                <p class="text-[11px] text-ink-700/55 mt-0.5 mb-0 font-mono">注册成功账号与 OAuth2 令牌实时追加写入 Results 目录，点击卡片直接查看</p>
+              </div>
+              <button type="button" data-jump-tab="results" class="btn btn-primary btn-sm">
+                <span>打开结果中心</span>
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+              </button>
+            </div>
+            <div id="quick-results-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+              <div class="text-ink-700/45 py-4 text-center font-mono text-xs col-span-full">正在读取结果文件…</div>
+            </div>
           </div>
-        </aside>
+        </section>
       </div>
-    </div>
-  </section>
+    </main>
 
-  <!-- 结果 -->
-  <section id="tab-results" hidden>
-    <div class="controls">
-      <div id="result-files" style="flex:1"></div>
-      <button id="btn-refresh-results" class="btn">刷新</button>
-    </div>
-    <div id="result-table"></div>
-  </section>
-</main>
+    <!-- =====================================================================
+         SECTION 2: 邮箱配置 (cf_tempmail)
+         ===================================================================== -->
+    <section id="tab-email" hidden class="flex-1">
+      <div class="shell">
+        <div class="page-hero">
+          <div>
+            <h1>邮箱服务配置</h1>
+            <p>Cloudflare 临时邮箱 (dreamhunter2333/cloudflare_temp_email)，用于接收微软辅助邮箱验证码并完成账号绑密。</p>
+          </div>
+          <div class="actions">
+            <button type="button" data-jump-tab="task" class="btn">← 返回主控台</button>
+          </div>
+        </div>
 
-<script>
-const $ = id => document.getElementById(id);
-const logBox = $('log-box');
+        <div class="email-layout">
+          <section class="panel panel-pad">
+            <div class="panel-head">
+              <div>
+                <h2>Cloudflare 临时邮箱</h2>
+                <p class="sub">dreamhunter · cf_tempmail</p>
+              </div>
+            </div>
 
-/* ---------- WebSocket ---------- */
-let ws = null, wsTimer = null;
-const stateText = { idle: '空闲', running: '运行中', stopping: '停止中' };
+            <div class="form-grid">
+              <div class="form-field full">
+                <label for="cfBase">Worker 地址</label>
+                <input id="cfBase" placeholder="https://mail.example.workers.dev">
+              </div>
+              <div class="form-field">
+                <label for="cfSiteToken">站点密码 (Site Password)</label>
+                <input id="cfSiteToken" type="password" placeholder="部署设置 PASSWORDS 时填写">
+              </div>
+              <div class="form-field">
+                <label for="cfAdminKey">管理员密码（优先使用）</label>
+                <input id="cfAdminKey" type="password" placeholder="填了走管理接口, 不受站点密码限制">
+                <span class="hint">留空则走用户模式 (需部署开启 ENABLE_USER_CREATE_EMAIL)</span>
+              </div>
+              <div class="form-field">
+                <label>域名行为策略</label>
+                <div class="grid grid-cols-2 gap-2">
+                  <label class="check-inline">
+                    <input id="cfAutoDomain" type="checkbox">
+                    <span>服务端自动选域</span>
+                  </label>
+                  <label class="check-inline">
+                    <input id="cfRandomSubdomain" type="checkbox">
+                    <span>启用随机子域</span>
+                  </label>
+                </div>
+                <span class="hint">自动选域: 创建地址不传 domain, 由 Worker 按部署配置分配; 与下方域名池二选一</span>
+              </div>
+              <div class="form-field">
+                <label for="cfDomains">域名池 (逗号分隔, 留空同自动选域)</label>
+                <input id="cfDomains" placeholder="example.com,example.org">
+                <span class="hint">注册时随机抽取一个; 填了则忽略「服务端自动选域」</span>
+              </div>
+              <div class="form-field">
+                <label for="cfRetries">请求重试次数</label>
+                <input id="cfRetries" type="number" min="1" max="20" value="5">
+              </div>
+            </div>
 
-/* ---------- 登录态保护: 全局 401 拦截, 会话过期自动跳登录页 ---------- */
-(function () {
-  const origFetch = window.fetch;
-  window.fetch = function () {
-    return origFetch.apply(this, arguments).then(function (resp) {
-      if (resp.status === 401) {
-        location.href = '/login?next=' + encodeURIComponent(location.pathname + location.search);
-      }
-      return resp;
-    });
-  };
-})();
+            <div class="flex items-center justify-between flex-wrap gap-3 border-t border-ink-900/8 mt-5 pt-4">
+              <div class="actions">
+                <button id="saveEmail" class="btn primary">保存配置</button>
+                <button id="testEmail" class="btn">测试当前服务</button>
+              </div>
+            </div>
+            <div id="emailMessage" class="message"></div>
+          </section>
 
-/* ---------- 登录信息 + 修改密码 ---------- */
-(function () {
+          <aside class="panel panel-pad">
+            <div class="panel-head">
+              <div>
+                <h2>对接说明</h2>
+                <p class="sub">cloudflare_temp_email 部署要求</p>
+              </div>
+            </div>
+            <div class="space-y-3.5">
+              <div class="warning">管理员密码与站点密码仅保存在服务端 config.json，页面刷新后不回显，重新输入留空即保留原值。</div>
+              <p class="hint" style="line-height: 1.65; margin: 0;">
+                · 管理员模式：<code>/admin/new_address</code> 建地址，<code>/admin/mails</code> 收件，测试地址用后即删<br>
+                · 用户模式：<code>/api/new_address</code> 建地址，<code>/api/mails</code> + JWT 收件<br>
+                · 「启用随机子域」需 Worker 部署开启随机子域支持<br>
+                · 点击「测试当前服务」会真实创建一个临时地址验证全链路连通性
+              </p>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         SECTION 3: 注册代理池
+         ===================================================================== -->
+    <section id="tab-proxy" hidden class="flex-1">
+      <div class="shell">
+        <div class="page-hero">
+          <div>
+            <h1>注册代理池</h1>
+            <p>按任务分配独立租约；注册全流程锁定同一出口 IP，多任务按顺序轮询调度。</p>
+          </div>
+          <div class="actions">
+            <button id="exportBtn" class="btn">
+              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <span>导出脱敏清单</span>
+            </button>
+            <button id="addBtn" class="btn primary">
+              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <span>添加代理</span>
+            </button>
+          </div>
+        </div>
+
+        <div id="directWarning" class="warning" style="margin-bottom: 1.15rem;" hidden>代理池为空，当前注册任务将使用 config.json 配置的代理（留空则直连）。点击右上角「添加代理」即可导入代理池。</div>
+
+        <section id="summary" class="summary"></section>
+
+        <section class="panel panel-pad">
+          <div class="panel-head">
+            <div>
+              <h2>全局调度策略</h2>
+              <p class="sub">修改策略仅影响新分配租约，正在注册中的任务不会中途切换 IP。</p>
+            </div>
+            <button id="saveSettings" class="btn primary">保存策略</button>
+          </div>
+          <div class="settings-grid">
+            <div class="form-field">
+              <label for="strategy">调度策略</label>
+              <select id="strategy">
+                <option value="round_robin">顺序轮询 (Round Robin)</option>
+                <option value="random">随机挑选 (Random)</option>
+                <option value="least_used">最少占用 (Least Used)</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label for="defaultScheme">缺省协议</label>
+              <select id="defaultScheme">
+                <option value="http">HTTP</option>
+                <option value="https">HTTPS</option>
+                <option value="socks5">SOCKS5</option>
+                <option value="socks5h">SOCKS5H</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label for="defaultConcurrency">每条默认并发上限</label>
+              <input id="defaultConcurrency" type="number" min="1" max="64" value="1">
+            </div>
+            <div class="form-field">
+              <label for="alignGeo">浏览器指纹地区</label>
+              <label class="check-inline">
+                <input id="alignGeo" type="checkbox" checked>
+                <span>根据出口地区自动对齐指纹</span>
+              </label>
+            </div>
+          </div>
+          <div id="settingsMessage" class="message"></div>
+        </section>
+
+        <section class="panel panel-pad">
+          <div class="panel-head" style="margin-bottom: 0.85rem;">
+            <div>
+              <h2>代理节点列表</h2>
+              <p class="sub">代理认证凭据仅保存在服务端本地文件，前端与 API 永不回传明文密码。</p>
+            </div>
+          </div>
+
+          <div class="toolbar-bar">
+            <div class="toolbar-filters">
+              <input id="search" placeholder="搜索节点标签、主机地址或出口国家/地区…">
+              <select id="status">
+                <option value="">全部节点状态</option>
+                <option value="healthy">健康 (Healthy)</option>
+                <option value="untested">未测试 (Untested)</option>
+                <option value="unhealthy">不可用 (Unhealthy)</option>
+                <option value="busy">占用中 (Busy)</option>
+                <option value="cooldown">冷却中 (Cooldown)</option>
+                <option value="disabled">已停用 (Disabled)</option>
+              </select>
+            </div>
+            <div class="actions">
+              <button id="enableSelected" class="btn">批量启用</button>
+              <button id="disableSelected" class="btn">批量停用</button>
+              <button id="setConcurrencySelected" class="btn">设置并发</button>
+              <button id="testSelected" class="btn">连通测试</button>
+              <button id="deleteSelected" class="btn danger">批量删除</button>
+              <button id="dedupeBtn" class="btn danger">删除重复</button>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table style="min-width: 980px;">
+              <thead>
+                <tr>
+                  <th style="width: 40px;"><input id="checkAll" type="checkbox" class="accent-brand-600"></th>
+                  <th># / 节点标签</th>
+                  <th>脱敏代理地址</th>
+                  <th>健康状态</th>
+                  <th>出口 IP / 地区</th>
+                  <th>当前占用 / 上限</th>
+                  <th>成功 / 失败 / MARKED</th>
+                  <th style="text-align: right;">快捷操作</th>
+                </tr>
+              </thead>
+              <tbody id="rows"></tbody>
+            </table>
+            <div id="empty" class="empty" hidden>暂无代理节点。当前注册会使用 config.json 配置的代理（留空直连），也可点击右上角「添加代理」批量导入。</div>
+          </div>
+
+          <div class="pager">
+            <span id="pageInfo" class="sub"></span>
+            <div class="actions">
+              <label class="text-xs text-ink-700/75 font-mono">每页
+                <select id="perPage">
+                  <option>20</option>
+                  <option selected>50</option>
+                  <option>100</option>
+                  <option>200</option>
+                  <option>500</option>
+                  <option>1000</option>
+                  <option>2000</option>
+                </select>
+              </label>
+              <button id="refreshBtn" class="btn">刷新</button>
+              <button id="prev" class="btn">← 上一页</button>
+              <button id="next" class="btn">下一页 →</button>
+            </div>
+          </div>
+          <div id="listMessage" class="message"></div>
+        </section>
+      </div>
+
+      <dialog id="importDialog">
+        <div class="modal">
+          <div class="panel-head" style="margin-bottom: 1rem;">
+            <div>
+              <h2 style="margin:0; font-size: 1.15rem;">批量添加代理</h2>
+              <p class="sub">每行一条，支持标准 URL、user:pass@host:port 以及 {session} / {account} 动态占位符。</p>
+            </div>
+            <button id="closeDialog" class="btn btn-sm">关闭</button>
+          </div>
+          <div class="settings-grid" style="grid-template-columns:1fr 1fr; margin-bottom: 0.9rem;">
+            <div class="form-field">
+              <label for="importMode">导入模式</label>
+              <select id="importMode">
+                <option value="append">追加并自动去重</option>
+                <option value="replace">覆盖整个代理池</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label for="proxyFile">从 TXT 文件读取（最大 5 MB）</label>
+              <input id="proxyFile" type="file" accept=".txt,text/plain">
+            </div>
+          </div>
+          <div class="form-field">
+            <label for="proxyText">粘贴代理列表</label>
+            <textarea id="proxyText" placeholder="http://user:pass@host:port&#10;socks5h://host:port&#10;user-session-{session}:pass@host:port"></textarea>
+          </div>
+          <div id="preview" class="preview">等待解析预览…</div>
+          <div class="actions" style="margin-top: 1rem; justify-content: flex-end;">
+            <button id="previewBtn" class="btn">解析预览</button>
+            <button id="importBtn" class="btn primary" disabled>确认导入</button>
+          </div>
+          <div id="importMessage" class="message"></div>
+        </div>
+      </dialog>
+    </section>
+
+    <!-- =====================================================================
+         SECTION 4: 结果中心
+         ===================================================================== -->
+    <section id="tab-results" hidden class="flex-1">
+      <div class="shell">
+        <div class="page-hero">
+          <div>
+            <h1>注册结果中心</h1>
+            <p>按文件查看 Results/*.txt 落盘数据；支持实时搜索过滤、点击单元格快速复制与整表导出。</p>
+          </div>
+          <div class="actions">
+            <button id="btn-copy-results" class="btn" type="button">
+              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              <span>复制当前列表</span>
+            </button>
+            <button id="btn-download-results" class="btn" type="button">
+              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <span>下载 TXT</span>
+            </button>
+            <button id="btn-refresh-results" class="btn primary" type="button">刷新结果</button>
+          </div>
+        </div>
+
+        <!-- File selector cards -->
+        <div id="result-files" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mb-5"></div>
+
+        <section class="panel panel-pad">
+          <div class="toolbar-bar">
+            <div class="toolbar-filters">
+              <input id="result-search" placeholder="搜索邮箱、密码、辅助邮箱或 Token 片段…">
+            </div>
+            <div class="actions">
+              <span id="result-meta" class="sub" style="margin:0;">请选择上方结果文件</span>
+            </div>
+          </div>
+
+          <div id="result-table"></div>
+          <div id="resultsMessage" class="message"></div>
+        </section>
+      </div>
+    </section>
+
+    <footer class="max-w-[1600px] w-full mx-auto px-4 sm:px-6 pb-8 pt-2 text-center text-[11px] font-mono text-ink-700/45">
+      Outlook 注册工作台 · 本地安全控制台 · 也可使用 <code class="px-1.5 py-0.5 rounded bg-paper-200/70 text-ink-800">python main.py</code> 命令行模式
+    </footer>
+  </div>
+
+  <script>
   const $ = id => document.getElementById(id);
-  const modal = $('pwd-modal'), msg = $('cp-msg');
+  const escHtml = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const logBox = $('log-box');
 
-  function openModal() {
-    modal.hidden = false;
-    msg.textContent = '';
-    msg.className = 'cp-msg';
-    $('cp-old').focus();
-  }
-  function closeModal() { modal.hidden = true; }
+  /* ---------- 全局 Toast 轻提示 (对齐 grok-slim-register1) ---------- */
+  (function () {
+    const host = document.createElement('div');
+    host.id = 'globalToastHost';
+    host.style.cssText = 'position:fixed;bottom:1.25rem;right:1.25rem;z-index:9999;display:flex;flex-direction:column;gap:0.5rem;pointer-events:none;max-width:24rem;';
+    document.body.appendChild(host);
 
-  $('btn-pwd').onclick = openModal;
-  $('banner-pwd').onclick = e => { e.preventDefault(); openModal(); };
-  $('pwd-close').onclick = closeModal;
-  modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+    window.showToast = function (text, cls = '') {
+      if (!text || text.length < 2) return;
+      if (/正在|加载|等待|连接中/.test(text)) return;
+      const item = document.createElement('div');
+      const isOk = cls.includes('ok') || cls.includes('leaf');
+      const isBad = cls.includes('bad') || cls.includes('rose');
+      item.className = 'toast-item ' + (isOk ? 'ok' : isBad ? 'bad' : '');
+      const dotColor = isOk ? '#34d399' : isBad ? '#fb7185' : '#60a5fa';
+      item.innerHTML = `<span style="width:7px;height:7px;border-radius:99px;background:${dotColor};flex-shrink:0"></span><span style="line-height:1.35">${escHtml(text)}</span>`;
+      host.appendChild(item);
+      while (host.children.length > 3) host.removeChild(host.firstChild);
+      setTimeout(() => {
+        item.style.opacity = '0';
+        item.style.transform = 'translateY(4px)';
+        item.style.transition = 'all 0.18s ease';
+        setTimeout(() => item.remove(), 200);
+      }, 2600);
+    };
 
-  $('cp-submit').onclick = async () => {
-    const oldPwd = $('cp-old').value;
-    const user = $('cp-user').value.trim();
-    const newPwd = $('cp-new').value;
-    const newPwd2 = $('cp-new2').value;
-    msg.className = 'cp-msg';
-    msg.textContent = '提交中…';
-    if (newPwd !== newPwd2) {
-      msg.className = 'cp-msg bad';
-      msg.textContent = '两次输入的新密码不一致';
-      return;
-    }
-    try {
-      const r = await fetch('/api/ui/change-password', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ old_password: oldPwd, new_password: newPwd, username: user }),
+    const targets = document.querySelectorAll('.message');
+    targets.forEach((el) => {
+      let lastText = el.textContent.trim();
+      const obs = new MutationObserver(() => {
+        const cur = el.textContent.trim();
+        if (cur && cur !== lastText) {
+          lastText = cur;
+          window.showToast(cur, el.className || '');
+        }
       });
-      const d = await r.json().catch(() => ({}));
-      if (r.ok && d.ok) {
-        msg.className = 'cp-msg ok';
-        msg.textContent = '密码修改成功，正在跳转登录页…';
-        setTimeout(() => { location.href = '/login'; }, 1200);
-      } else {
-        msg.className = 'cp-msg bad';
-        msg.textContent = d.message || '修改失败';
+      obs.observe(el, { childList: true, characterData: true, subtree: true });
+    });
+  })();
+
+  /* ---------- 登录态保护: 全局 401 拦截 ---------- */
+  (function () {
+    const origFetch = window.fetch;
+    window.fetch = function () {
+      return origFetch.apply(this, arguments).then(function (resp) {
+        if (resp.status === 401) {
+          location.href = '/login?next=' + encodeURIComponent(location.pathname + location.search);
+        }
+        return resp;
+      });
+    };
+  })();
+
+  /* ---------- 登录信息 + 修改密码弹窗 ---------- */
+  (function () {
+    const modal = $('pwd-modal'), msg = $('cp-msg');
+
+    function openModal() {
+      modal.hidden = false;
+      msg.textContent = '';
+      msg.className = 'message';
+      $('cp-old').focus();
+    }
+    function closeModal() { modal.hidden = true; }
+
+    $('btn-pwd').onclick = openModal;
+    $('banner-pwd').onclick = e => { e.preventDefault(); openModal(); };
+    $('pwd-close').onclick = closeModal;
+    modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+    $('cp-submit').onclick = async () => {
+      const oldPwd = $('cp-old').value;
+      const user = $('cp-user').value.trim();
+      const newPwd = $('cp-new').value;
+      const newPwd2 = $('cp-new2').value;
+      msg.className = 'message';
+      msg.textContent = '提交中…';
+      if (newPwd !== newPwd2) {
+        msg.className = 'message bad';
+        msg.textContent = '两次输入的新密码不一致';
+        return;
       }
-    } catch (err) {
-      msg.className = 'cp-msg bad';
-      msg.textContent = '网络错误，请重试';
+      try {
+        const r = await fetch('/api/ui/change-password', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ old_password: oldPwd, new_password: newPwd, username: user }),
+        });
+        const d = await r.json().catch(() => ({}));
+        if (r.ok && d.ok) {
+          msg.className = 'message ok';
+          msg.textContent = '密码修改成功，正在跳转登录页…';
+          setTimeout(() => { location.href = '/login'; }, 1200);
+        } else {
+          msg.className = 'message bad';
+          msg.textContent = d.message || '修改失败';
+        }
+      } catch (err) {
+        msg.className = 'message bad';
+        msg.textContent = '网络错误，请重试';
+      }
+    };
+
+    fetch('/api/ui/session').then(r => r.json()).then(d => {
+      if (d && d.authed) {
+        $('ui-user').textContent = d.username;
+        $('cp-user').placeholder = '登录用户名（默认 ' + (d.username || 'admin') + '）';
+        if (d.is_default_password) $('default-pwd-banner').hidden = false;
+      }
+    }).catch(() => {});
+  })();
+
+  /* ---------- 导航与子面板切换 ---------- */
+  function switchMainTab(tabName) {
+    document.querySelectorAll('.tab').forEach(b => {
+      b.classList.toggle('active', b.dataset.tab === tabName);
+    });
+    ['task', 'email', 'proxy', 'results'].forEach(t => {
+      const el = $('tab-' + t);
+      if (el) el.hidden = (t !== tabName);
+    });
+    if (tabName === 'task') {
+      refreshEnvOverview();
+      loadQuickResults();
     }
-  };
-
-  // 当前登录用户 + 默认密码警告
-  fetch('/api/ui/session').then(r => r.json()).then(d => {
-    if (d && d.authed) {
-      $('ui-user').textContent = d.username;
-      $('cp-user').placeholder = '登录用户名（默认 ' + (d.username || 'admin') + '）';
-      if (d.is_default_password) $('default-pwd-banner').hidden = false;
-    }
-  }).catch(() => {});
-})();
-
-function connectWS() {
-  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-  ws = new WebSocket(proto + '://' + location.host + '/ws');
-  ws.onopen = () => { $('ws-hint').textContent = '已连接'; $('ws-hint').style.color = 'var(--green)'; };
-  ws.onmessage = e => {
-    const msg = JSON.parse(e.data);
-    if (msg.type === 'log') appendLog(msg.text);
-    else if (msg.type === 'status') updateStatus(msg);
-  };
-  ws.onclose = e => {
-    // 会话失效: 服务端握手后以 4401 关闭, 跳转登录页
-    if (e.code === 4401) {
-      $('ws-hint').textContent = '登录已过期';
-      $('ws-hint').style.color = 'var(--red)';
-      location.href = '/login?next=' + encodeURIComponent(location.pathname + location.search);
-      return;
-    }
-    $('ws-hint').textContent = '连接断开，重连中...'; $('ws-hint').style.color = 'var(--red)';
-    clearTimeout(wsTimer); wsTimer = setTimeout(connectWS, 2000);
-  };
-  ws.onerror = () => ws.close();
-}
-
-/* ---------- 日志 ---------- */
-let stick = true;
-logBox.addEventListener('scroll', () => {
-  stick = logBox.scrollTop + logBox.clientHeight >= logBox.scrollHeight - 30;
-});
-function appendLog(text) {
-  const div = document.createElement('div');
-  let cls = 'line';
-  if (text.includes('Success')) cls += ' ok';
-  else if (text.includes('Error') || text.includes('ERROR')) cls += ' err';
-  else if (text.includes('[Console]')) cls += ' sys';
-  div.className = cls;
-  div.textContent = text;
-  logBox.appendChild(div);
-  while (logBox.children.length > 1500) logBox.removeChild(logBox.firstChild);
-  if (stick) logBox.scrollTop = logBox.scrollHeight;
-}
-
-/* ---------- 状态 ---------- */
-function updateStatus(msg) {
-  $('st-state').textContent = stateText[msg.state] || msg.state;
-  const badge = $('status-badge');
-  badge.textContent = stateText[msg.state] || msg.state;
-  badge.className = 'badge ' + msg.state;
-  $('st-submitted').textContent = msg.submitted;
-  $('st-max').textContent = msg.max_tasks;
-  $('st-success').textContent = msg.success;
-  $('st-failed').textContent = msg.failed;
-  $('st-conc').textContent = msg.concurrent_flows;
-  $('btn-start').disabled = msg.state !== 'idle';
-  $('btn-stop').disabled = msg.state === 'idle';
-}
-
-async function fetchStatus() {
-  try { updateStatus(await (await fetch('/api/tasks/status')).json()); } catch (e) {}
-}
-
-/* ---------- 任务按钮 ---------- */
-$('btn-start').onclick = async () => {
-  $('btn-start').disabled = true;
-  const r = await (await fetch('/api/tasks/start', { method: 'POST' })).json();
-  appendLog('[Console] ' + r.message);
-};
-$('btn-stop').onclick = async () => {
-  $('btn-stop').disabled = true;
-  const r = await (await fetch('/api/tasks/stop', { method: 'POST' })).json();
-  appendLog('[Console] ' + r.message);
-};
-$('btn-clear').onclick = () => { logBox.innerHTML = ''; };
-
-/* ---------- Tab 切换 ---------- */
-document.querySelectorAll('.tab').forEach(btn => btn.onclick = () => {
-  document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  ['task', 'config', 'proxy', 'email', 'results'].forEach(t => $('tab-' + t).hidden = t !== btn.dataset.tab);
-  if (btn.dataset.tab === 'config') loadConfig();
-  if (btn.dataset.tab === 'proxy') loadProxies();
-  if (btn.dataset.tab === 'email') loadEmailTab();
-  if (btn.dataset.tab === 'results') loadResults();
-});
-
-/* ---------- 邮箱服务页 (cf_tempmail, 照搬 grok-slim-register1 email_settings 的 Cloudflare 表单) ---------- */
-function loadEmailTab() {
-  if (window.__emailTabLoaded) return;
-  window.__emailTabLoaded = true;
-
-  const $ = id => document.getElementById(id);
-
-  function msg(text, ok = null) {
-    const el = $('emailMessage');
-    el.textContent = text || '';
-    el.className = 'message ' + (ok === true ? 'ok' : ok === false ? 'bad' : '');
+    if (tabName === 'proxy') loadProxies();
+    if (tabName === 'email') loadEmailTab();
+    if (tabName === 'results') loadResults();
   }
 
-  async function loadConfig() {
+  document.querySelectorAll('.tab').forEach(btn => {
+    btn.onclick = () => switchMainTab(btn.dataset.tab);
+  });
+  $('brandHomeLink').onclick = (e) => {
+    e.preventDefault();
+    switchMainTab('task');
+  };
+  document.querySelectorAll('[data-jump-tab]').forEach(btn => {
+    btn.onclick = () => switchMainTab(btn.dataset.jumpTab);
+  });
+
+  function switchSubTab(subName) {
+    document.querySelectorAll('.subtab-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.subtab === subName);
+    });
+    $('subtab-run').hidden = (subName !== 'run');
+    $('subtab-config').hidden = (subName !== 'config');
+    if (subName === 'config') loadConfig();
+  }
+  document.querySelectorAll('.subtab-btn').forEach(btn => {
+    btn.onclick = () => switchSubTab(btn.dataset.subtab);
+  });
+
+  /* ---------- WebSocket & 实时日志 & 流水线推断 ---------- */
+  let ws = null, wsTimer = null;
+  let currentState = 'idle';
+  let runStartTs = null;
+  let elapsedSeconds = 0;
+
+  const stateText = { idle: '空闲', running: '运行中', stopping: '停止中' };
+  const stateBadgeMeta = {
+    idle: { dot: 'h-2 w-2 rounded-full bg-slate-400', text: 'IDLE' },
+    running: { dot: 'h-2 w-2 rounded-full bg-leaf-500 pulse-live', text: 'RUNNING' },
+    stopping: { dot: 'h-2 w-2 rounded-full bg-sun-500 pulse-live', text: 'STOPPING' },
+  };
+
+  function formatDuration(sec) {
+    sec = Math.max(0, Math.floor(sec));
+    if (sec < 60) return sec + 's';
+    const m = Math.floor(sec / 60), s = sec % 60;
+    if (m < 60) return `${m}m ${s}s`;
+    const h = Math.floor(m / 60), rm = m % 60;
+    return `${h}h ${rm}m`;
+  }
+
+  setInterval(() => {
+    if (currentState === 'running' && runStartTs) {
+      elapsedSeconds = Math.floor((Date.now() - runStartTs) / 1000);
+      $('st-elapsed').textContent = formatDuration(elapsedSeconds);
+    }
+  }, 1000);
+
+  function inferPipelineStage(text) {
+    if (!text) return null;
+    const rules = [
+      [/OAuth2.*成功|secured_tokens\.txt|获取.*token.*成功/i, 'OAuth2 令牌获取成功 ✓ · 已落盘'],
+      [/OAuth2|authorization_code|get_token/i, '正在执行 OAuth2 授权换取令牌…'],
+      [/secured_accounts\.txt|绑定辅助邮箱成功|完成绑密/i, '辅助邮箱绑定完成 ✓ · 账号已保存'],
+      [/验证码|邮件|cf_tempmail|临时邮箱|security|proofs/i, '正在创建临时邮箱 / 接收绑定验证码…'],
+      [/Arkose|FunCaptcha|人机验证|按住|captcha|Bot protection/i, '正在通过微软人机验证 / 反检测等待…'],
+      [/生日|姓名|Birth|Name|Country/i, '正在填写国家/地区、生日与姓名信息…'],
+      [/密码|Password|创建账号|邮箱地址/i, '正在输入注册邮箱账号与密码…'],
+      [/signup\.live\.com|打开注册页|Navigating/i, '正在打开微软 Outlook 注册页面…'],
+      [/camoufox|启动浏览器|浏览器启动|分配代理/i, '正在分配代理租约并启动 Camoufox 浏览器…'],
+      [/任务结束/i, '本轮注册任务已全部完成'],
+      [/任务启动/i, '调度器已启动 · 正在初始化并发工作线程…'],
+    ];
+    for (const [re, label] of rules) {
+      if (re.test(text)) {
+        const workerM = text.match(/\[(W\d+)\]/);
+        const emailM = text.match(/([a-zA-Z0-9._%+-]+@(?:outlook|hotmail)\.com)/i);
+        const prefix = workerM ? `[${workerM[1]}] ` : '';
+        const suffix = emailM ? ` · ${emailM[1]}` : '';
+        return `${prefix}${label}${suffix}`;
+      }
+    }
+    const clean = text.replace(/\s+/g, ' ').trim();
+    return clean.length > 96 ? clean.slice(0, 96) + '…' : clean;
+  }
+
+  function setWsBadge(ok, text) {
+    const el = $('ws-hint');
+    if (!el) return;
+    el.textContent = text;
+    el.className = 'badge ' + (ok === true ? 'ok' : ok === false ? 'bad' : 'warn');
+  }
+
+  function connectWS() {
+    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+    ws = new WebSocket(proto + '://' + location.host + '/ws');
+    ws.onopen = () => setWsBadge(true, '实时流已连接');
+    ws.onmessage = e => {
+      const msg = JSON.parse(e.data);
+      if (msg.type === 'log') appendLog(msg.text);
+      else if (msg.type === 'status') updateStatus(msg);
+    };
+    ws.onclose = e => {
+      if (e.code === 4401) {
+        setWsBadge(false, '登录已过期');
+        location.href = '/login?next=' + encodeURIComponent(location.pathname + location.search);
+        return;
+      }
+      setWsBadge(false, '连接断开 · 重连中');
+      clearTimeout(wsTimer);
+      wsTimer = setTimeout(connectWS, 2000);
+    };
+    ws.onerror = () => ws.close();
+  }
+
+  /* ---------- 日志终端 ---------- */
+  let stick = true;
+  logBox.addEventListener('scroll', () => {
+    stick = logBox.scrollTop + logBox.clientHeight >= logBox.scrollHeight - 30;
+  });
+
+  function appendLog(text) {
+    const placeholder = $('log-empty-placeholder');
+    if (placeholder) placeholder.remove();
+
+    const div = document.createElement('div');
+    let cls = 'line';
+    if (/Success|成功|通过|已保存/.test(text)) cls += ' ok';
+    else if (/Error|ERROR|失败|异常|中断/.test(text)) cls += ' err';
+    else if (/\[Console\]|\[Auth\]/.test(text)) cls += ' sys';
+    div.className = cls;
+    div.textContent = text;
+    logBox.appendChild(div);
+    while (logBox.children.length > 1500) logBox.removeChild(logBox.firstChild);
+    if ($('auto-scroll').checked && stick) {
+      logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    const hint = inferPipelineStage(text);
+    if (hint) $('pipelineSteps').textContent = hint;
+  }
+
+  $('btn-clear').onclick = () => {
+    logBox.innerHTML = '<div id="log-empty-placeholder" class="text-ink-700/40 py-10 text-center font-mono text-xs">日志已清空，等待新输出…</div>';
+  };
+
+  /* ---------- 状态与进度条同步 ---------- */
+  function updateStatus(msg) {
+    const prevState = currentState;
+    currentState = msg.state || 'idle';
+
+    if (currentState === 'running' && prevState !== 'running') {
+      runStartTs = Date.now();
+      elapsedSeconds = 0;
+    } else if (currentState === 'idle' && prevState === 'running') {
+      runStartTs = null;
+      loadQuickResults();
+    }
+
+    $('st-state').textContent = stateText[currentState] || currentState;
+    const meta = stateBadgeMeta[currentState] || stateBadgeMeta.idle;
+    $('statusDot').className = meta.dot;
+    $('statusText').textContent = meta.text;
+    $('pipelineDot').className = currentState === 'running'
+      ? 'h-1.5 w-1.5 rounded-full bg-leaf-500 pulse-live'
+      : currentState === 'stopping'
+      ? 'h-1.5 w-1.5 rounded-full bg-sun-500 pulse-live'
+      : 'h-1.5 w-1.5 rounded-full bg-slate-400';
+
+    const submitted = Number(msg.submitted || 0);
+    const maxTasks = Number(msg.max_tasks || 0);
+    const success = Number(msg.success || 0);
+    const failed = Number(msg.failed || 0);
+    const done = success + failed;
+    const inflight = Math.max(0, submitted - done);
+
+    $('st-submitted').textContent = submitted;
+    $('st-max').textContent = maxTasks;
+    $('st-success').textContent = success;
+    $('st-failed').textContent = failed;
+    $('st-conc').textContent = msg.concurrent_flows || 1;
+    $('st-inflight').textContent = inflight;
+
+    $('st-done-inline').textContent = done;
+    $('st-max-inline').textContent = maxTasks;
+
+    const pct = maxTasks > 0 ? Math.min(100, Math.round((done / maxTasks) * 100)) : 0;
+    $('progressBar').style.width = pct + '%';
+    $('progressLabel').textContent = pct + '%';
+
+    $('btn-start').disabled = currentState !== 'idle';
+    $('btn-stop').disabled = currentState === 'idle';
+  }
+
+  async function fetchStatus() {
+    try {
+      const d = await (await fetch('/api/tasks/status')).json();
+      updateStatus(d);
+    } catch (e) {}
+  }
+
+  /* ---------- 任务启动与停止 (先同步快捷启动参数到 config.json) ---------- */
+  $('btn-start').onclick = async () => {
+    $('btn-start').disabled = true;
+    const runMsg = $('runMessage');
+    runMsg.className = 'message';
+    runMsg.textContent = '正在同步启动参数…';
     try {
       const cfg = await (await fetch('/api/config')).json();
-      const cf = cfg.cf_tempmail || {};
-      $('cfBase').value = cf.base_url || '';
-      $('cfDomains').value = cf.domains || '';
-      $('cfAutoDomain').checked = !!cf.auto_domain;
-      $('cfRandomSubdomain').checked = !!cf.random_subdomain;
-      $('cfRetries').value = cf.max_request_retries || 5;
-      // 密码字段不回显 (后端不回传明文), 占位符提示是否已配置
-      const adminSet = !!(cf.admin_password);
-      const siteSet = !!(cf.site_password);
-      $('cfAdminKey').value = '';
-      $('cfAdminKey').placeholder = adminSet ? '已配置, 留空保留' : '填了走管理接口, 不受站点密码限制';
-      $('cfSiteToken').value = '';
-      $('cfSiteToken').placeholder = siteSet ? '已配置, 留空保留' : '部署设置 PASSWORDS 时填写';
-    } catch (e) {
-      msg('读取配置失败: ' + e.message, false);
+      const maxTasks = Math.max(1, parseInt($('quick-max-tasks').value, 10) || 1);
+      const conc = Math.max(1, parseInt($('quick-conc').value, 10) || 1);
+      const suffix = $('quick-suffix').value || '@outlook.com';
+      const oauth2On = $('quick-oauth2').checked;
+
+      cfg.max_tasks = maxTasks;
+      cfg.concurrent_flows = conc;
+      cfg.email_suffix = suffix;
+      if (!cfg.oauth2 || typeof cfg.oauth2 !== 'object') cfg.oauth2 = {};
+      cfg.oauth2.enable_oauth2 = oauth2On;
+
+      await fetch('/api/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cfg),
+      });
+      syncQuickControlsFromConfig(cfg);
+
+      const r = await (await fetch('/api/tasks/start', { method: 'POST' })).json();
+      runMsg.className = 'message ' + (r.ok ? 'ok' : 'bad');
+      runMsg.textContent = r.message || (r.ok ? '任务已启动' : '启动失败');
+      appendLog('[Console] ' + r.message);
+      if (!r.ok) $('btn-start').disabled = false;
+    } catch (err) {
+      runMsg.className = 'message bad';
+      runMsg.textContent = '启动异常: ' + err.message;
+      $('btn-start').disabled = false;
+    }
+  };
+
+  $('btn-stop').onclick = async () => {
+    $('btn-stop').disabled = true;
+    const runMsg = $('runMessage');
+    try {
+      const r = await (await fetch('/api/tasks/stop', { method: 'POST' })).json();
+      runMsg.className = 'message ' + (r.ok ? 'ok' : 'bad');
+      runMsg.textContent = r.message || '已发送停止指令';
+      appendLog('[Console] ' + r.message);
+    } catch (err) {
+      runMsg.className = 'message bad';
+      runMsg.textContent = '停止请求失败: ' + err.message;
+    }
+  };
+
+  /* ---------- 环境概览与快捷启动参数同步 ---------- */
+  let cfgData = null;
+
+  function syncQuickControlsFromConfig(cfg) {
+    if (!cfg) return;
+    $('quick-max-tasks').value = cfg.max_tasks ?? 1;
+    $('quick-conc').value = cfg.concurrent_flows ?? 1;
+    $('quick-suffix').value = cfg.email_suffix || '@outlook.com';
+    $('quick-oauth2').checked = !!(cfg.oauth2 && cfg.oauth2.enable_oauth2);
+    $('st-suffix').textContent = cfg.email_suffix || '@outlook.com';
+    if (currentState === 'idle') {
+      $('st-max').textContent = cfg.max_tasks ?? 1;
+      $('st-max-inline').textContent = cfg.max_tasks ?? 1;
+      $('st-conc').textContent = cfg.concurrent_flows ?? 1;
     }
   }
 
-  async function saveConfig() {
-    msg('正在保存…');
-    const cfg = await (await fetch('/api/config')).json();
-    const cf = cfg.cf_tempmail || (cfg.cf_tempmail = {});
-    cf.base_url = $('cfBase').value.trim();
-    cf.domains = $('cfDomains').value.trim();
-    cf.auto_domain = $('cfAutoDomain').checked;
-    cf.random_subdomain = $('cfRandomSubdomain').checked;
-    cf.max_request_retries = Number($('cfRetries').value) || 5;
-    // 密码留空 = 保留原值
-    if ($('cfAdminKey').value.trim()) cf.admin_password = $('cfAdminKey').value.trim();
-    if ($('cfSiteToken').value.trim()) cf.site_password = $('cfSiteToken').value.trim();
+  async function refreshEnvOverview() {
+    try {
+      const [cfg, proxyData] = await Promise.all([
+        fetch('/api/config').then(r => r.json()),
+        fetch('/api/proxies?page=1&per_page=1').then(r => r.json()).catch(() => null),
+      ]);
+      cfgData = cfg;
+      syncQuickControlsFromConfig(cfg);
+
+      const cf = cfg.cf_tempmail || {};
+      $('env-cf-worker').textContent = cf.base_url ? cf.base_url.replace(/^https?:\/\//, '') : '未配置';
+      if (cf.domains) {
+        const list = cf.domains.split(',').map(s => s.trim()).filter(Boolean);
+        $('env-cf-domain').textContent = list.length === 1 ? list[0] : `${list[0]} 等 ${list.length} 个域`;
+      } else if (cf.auto_domain) {
+        $('env-cf-domain').textContent = '服务端自动选域';
+      } else {
+        $('env-cf-domain').textContent = '默认选域';
+      }
+
+      const ps = proxyData && proxyData.summary;
+      if (ps && ps.total > 0) {
+        $('env-proxy-mode').textContent = `代理池 (${ps.healthy} 健康 / 共 ${ps.total})`;
+        $('env-proxy-count').textContent = `${ps.healthy}/${ps.total} 可用 →`;
+      } else if (cfg.proxy) {
+        $('env-proxy-mode').textContent = '单代理 · ' + cfg.proxy;
+        $('env-proxy-count').textContent = '单代理模式 →';
+      } else {
+        $('env-proxy-mode').textContent = '本机直连 (无代理)';
+        $('env-proxy-count').textContent = '去添加 →';
+      }
+
+      const cam = cfg.camoufox || {};
+      const parts = [
+        cam.os || 'auto',
+        cam.locale || 'auto',
+        cam.headless ? '无头' : '有头窗口',
+      ];
+      $('env-camoufox').textContent = parts.join(' · ');
+    } catch (e) {}
+  }
+
+  /* ---------- 系统配置面板 (分组卡片渲染) ---------- */
+  const LABELS = {
+    proxy: '兜底代理地址',
+    email_suffix: '注册邮箱后缀',
+    bot_protection_wait: '反检测等待 (秒)',
+    max_captcha_retries: '验证码重试次数',
+    concurrent_flows: '并发浏览器数量',
+    max_tasks: '总注册任务数',
+    enable_oauth2: '启用 OAuth2 取令牌',
+    client_id: 'Azure Client ID',
+    redirect_url: 'OAuth2 回调地址',
+    Scopes: 'OAuth2 权限范围 (Scopes)',
+    headless: '无头模式 (Headless)',
+    geoip: 'IP 地理匹配 (GeoIP)',
+    humanize: '拟人鼠标轨迹',
+    locale: '浏览器语言 (Locale)',
+    os: '指纹操作系统 (OS)',
+    version: 'Camoufox 内核版本',
+    keep_browser: '保留浏览器窗口',
+    block_images: '屏蔽图片加载',
+    block_webrtc: '屏蔽 WebRTC',
+  };
+
+  const HINTS = {
+    email_suffix: '注册域名后缀: @outlook.com 或 @hotmail.com',
+    proxy: '代理池为空时使用的兜底代理，留空则直连',
+    bot_protection_wait: '反机器人检测等待秒数',
+    max_captcha_retries: '验证码最大重试次数',
+    concurrent_flows: '同时运行的 Camoufox 浏览器实例数',
+    max_tasks: '本批次计划注册的总账号数',
+    enable_oauth2: '注册完成后自动走 OAuth2 授权流获取 refresh_token',
+    client_id: 'Azure 应用 Client ID',
+    redirect_url: 'OAuth2 回调地址，如 http://localhost:8000',
+    headless: '注册建议关闭无头模式（有头模式通过率显著更高）',
+    geoip: '时区 / 语言 / 经纬度自动跟随代理出口 IP',
+    humanize: '启用鼠标拟人移动轨迹',
+    locale: '锁定浏览器语言（注册依赖中文页面定位，建议保持 zh-CN）',
+    os: '指纹 OS（macOS 上建议 macos，避免字体渲染差异）',
+    version: '指定 Camoufox 运行时版本，留空使用默认版本',
+    keep_browser: '注册结束后保留浏览器窗口，便于人工检查',
+    block_images: '禁止加载图片省流量（易被风控检测，默认关闭）',
+    block_webrtc: '屏蔽 WebRTC（开启 GeoIP 时无需额外开启）',
+  };
+
+  async function loadConfig() {
+    cfgData = await (await fetch('/api/config')).json();
+    syncQuickControlsFromConfig(cfgData);
+    const root = $('config-form');
+    root.innerHTML = '';
+
+    // 1. 邮箱服务快捷跳转卡片
+    const mailBlock = document.createElement('div');
+    mailBlock.className = 'cfg-block';
+    mailBlock.innerHTML = `
+      <div class="flex items-center justify-between gap-3">
+        <div>
+          <h3 class="cfg-title" style="border:0;padding:0;">Cloudflare 临时邮箱</h3>
+          <p class="hint" style="margin-top:0.15rem;">Worker 地址、管理员密码、域名池与真实连接测试已独立至「邮箱配置」页。</p>
+        </div>
+        <button type="button" class="btn btn-primary btn-sm shrink-0" id="cfgJumpEmailBtn">打开邮箱配置</button>
+      </div>
+    `;
+    root.appendChild(mailBlock);
+    mailBlock.querySelector('#cfgJumpEmailBtn').onclick = () => switchMainTab('email');
+
+    // 2. 基础与风控参数
+    root.appendChild(buildCfgSection('基础与风控参数', 'config', cfgData, [
+      'email_suffix', 'max_tasks', 'concurrent_flows', 'bot_protection_wait', 'max_captcha_retries', 'proxy'
+    ]));
+
+    // 3. Camoufox 反指纹浏览器
+    if (cfgData.camoufox && typeof cfgData.camoufox === 'object') {
+      root.appendChild(buildCfgSection('Camoufox 反指纹浏览器', 'config.camoufox', cfgData.camoufox));
+    }
+
+    // 4. OAuth2 授权
+    if (cfgData.oauth2 && typeof cfgData.oauth2 === 'object') {
+      root.appendChild(buildCfgSection('OAuth2 令牌授权', 'config.oauth2', cfgData.oauth2));
+    }
+  }
+
+  function buildCfgSection(title, basePath, obj, keyFilter = null) {
+    const block = document.createElement('div');
+    block.className = 'cfg-block';
+    const h3 = document.createElement('h3');
+    h3.className = 'cfg-title';
+    h3.innerHTML = `<span>${escHtml(title)}</span><span class="text-[10px] font-mono text-ink-500 font-normal">${escHtml(basePath)}</span>`;
+    block.appendChild(h3);
+
+    const entries = Object.entries(obj).filter(([k, v]) => {
+      if (basePath === 'config' && (typeof v === 'object' && v !== null && !Array.isArray(v))) return false;
+      if (keyFilter && !keyFilter.includes(k)) return false;
+      return true;
+    });
+
+    const boolEntries = entries.filter(([, v]) => typeof v === 'boolean');
+    const otherEntries = entries.filter(([, v]) => typeof v !== 'boolean');
+
+    // 渲染非布尔字段
+    const grid = document.createElement('div');
+    grid.className = 'grid grid-cols-1 sm:grid-cols-2 gap-2.5';
+    otherEntries.forEach(([k, v]) => {
+      const path = basePath + '.' + k;
+      const wrap = document.createElement('div');
+      const isFull = Array.isArray(v) || k === 'proxy' || k === 'client_id' || k === 'redirect_url';
+      wrap.className = 'form-field' + (isFull ? ' sm:col-span-2' : '');
+
+      const lbl = document.createElement('label');
+      lbl.textContent = LABELS[k] || k;
+      lbl.title = (HINTS[k] ? HINTS[k] + '\n' : '') + path;
+      wrap.appendChild(lbl);
+
+      if (Array.isArray(v)) {
+        const ta = document.createElement('textarea');
+        ta.dataset.path = path;
+        ta.className = 'field font-mono text-xs';
+        ta.value = JSON.stringify(v, null, 2);
+        ta.rows = Math.min(5, v.length + 2);
+        wrap.appendChild(ta);
+      } else if (k === 'email_suffix') {
+        const sel = document.createElement('select');
+        sel.dataset.path = path;
+        sel.className = 'field font-mono';
+        ['@outlook.com', '@hotmail.com'].forEach(optVal => {
+          const opt = document.createElement('option');
+          opt.value = optVal;
+          opt.textContent = optVal;
+          if (v === optVal) opt.selected = true;
+          sel.appendChild(opt);
+        });
+        wrap.appendChild(sel);
+      } else if (typeof v === 'number') {
+        const inp = document.createElement('input');
+        inp.type = 'number';
+        inp.step = 'any';
+        inp.value = v;
+        inp.dataset.path = path;
+        inp.className = 'field font-mono';
+        wrap.appendChild(inp);
+      } else {
+        const inp = document.createElement('input');
+        inp.type = 'text';
+        inp.value = v ?? '';
+        inp.dataset.path = path;
+        inp.className = 'field font-mono';
+        if (HINTS[k]) inp.placeholder = HINTS[k];
+        wrap.appendChild(inp);
+      }
+      if (HINTS[k]) {
+        const h = document.createElement('span');
+        h.className = 'hint';
+        h.textContent = HINTS[k];
+        wrap.appendChild(h);
+      }
+      grid.appendChild(wrap);
+    });
+    if (otherEntries.length) block.appendChild(grid);
+
+    // 渲染布尔开关 (2列对齐)
+    if (boolEntries.length) {
+      const boolGrid = document.createElement('div');
+      boolGrid.className = 'grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1';
+      boolEntries.forEach(([k, v]) => {
+        const path = basePath + '.' + k;
+        const lbl = document.createElement('label');
+        lbl.className = 'check-inline';
+        lbl.title = HINTS[k] || path;
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = v;
+        cb.dataset.path = path;
+        const sp = document.createElement('span');
+        sp.textContent = LABELS[k] || k;
+        lbl.appendChild(cb);
+        lbl.appendChild(sp);
+        boolGrid.appendChild(lbl);
+      });
+      block.appendChild(boolGrid);
+    }
+
+    return block;
+  }
+
+  function collectConfig() {
+    const obj = JSON.parse(JSON.stringify(cfgData));
+    document.querySelectorAll('#config-form [data-path]').forEach(el => {
+      let v;
+      if (el.type === 'checkbox') v = el.checked;
+      else if (el.tagName === 'TEXTAREA') v = JSON.parse(el.value);
+      else if (el.type === 'number') v = el.value === '' ? 0 : parseFloat(el.value);
+      else v = el.value;
+      const keys = el.dataset.path.split('.').slice(1);
+      let cur = obj;
+      for (let i = 0; i < keys.length - 1; i++) cur = cur[keys[i]];
+      cur[keys[keys.length - 1]] = v;
+    });
+    return obj;
+  }
+
+  $('btn-save-config').onclick = async () => {
+    const cfgMsg = $('configMessage');
+    let obj;
+    try {
+      obj = collectConfig();
+    } catch (err) {
+      cfgMsg.className = 'message bad';
+      cfgMsg.textContent = 'JSON 数组格式有误: ' + err.message;
+      return;
+    }
     const r = await (await fetch('/api/config', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(cfg),
+      body: JSON.stringify(obj),
     })).json();
-    msg(r.message || (r.ok ? '配置已保存' : '保存失败'), r.ok);
-    await loadConfig();
-    return r.ok;
-  }
-
-  $('saveEmail').onclick = () => saveConfig().catch(e => msg(e.message, false));
-  $('testEmail').onclick = async () => {
-    try {
-      if (!(await saveConfig())) return;
-      msg('正在执行真实连接测试 (会临时创建一个邮箱地址)…');
-      const d = await (await fetch('/api/email/test', { method: 'POST' })).json();
-      msg(d.message || (d.ok ? '测试通过' : '测试失败'), d.ok);
-    } catch (e) {
-      msg(e.message, false);
+    cfgMsg.className = 'message ' + (r.ok ? 'ok' : 'bad');
+    cfgMsg.textContent = r.message || (r.ok ? '配置已保存' : '保存失败');
+    appendLog('[Console] ' + r.message);
+    if (r.ok) {
+      await loadConfig();
+      refreshEnvOverview();
     }
   };
-
-  loadConfig();
-}
-
-/* ---------- 配置表单 (由 config.json 结构自动生成) ---------- */
-let cfgData = null;
-
-/* 中文显示名 (英文键名以小字保留在标签下方) */
-const LABELS = {
-  proxy: '代理地址',
-  email_suffix: '邮箱后缀',
-  bot_protection_wait: '反检测等待 (秒)',
-  max_captcha_retries: '验证码重试次数',
-  concurrent_flows: '并发数量',
-  max_tasks: '总任务数',
-  enable_oauth2: '启用 OAuth2',
-  client_id: '应用 Client ID',
-  redirect_url: '回调地址',
-  Scopes: '权限范围',
-  headless: '无头模式',
-  geoip: 'IP 地理匹配',
-  humanize: '拟人鼠标',
-  locale: '界面语言',
-  os: '指纹操作系统',
-  version: '内核版本',
-  keep_browser: '保留浏览器',
-  block_images: '屏蔽图片',
-  block_webrtc: '屏蔽 WebRTC',
-};
-const LEGENDS = {
-  'config': '基础配置',
-  'config.oauth2': 'OAuth2 授权',
-  'config.camoufox': 'Camoufox 反指纹浏览器',
-  'config.cf_tempmail': 'Cloudflare 临时邮箱',
-};
-/* 已迁移到独立 tab 的配置段: 配置页不渲染, 保存时原样保留 */
-const SKIP_SECTIONS = new Map([
-  ['cf_tempmail', '邮箱'],
-]);
-
-async function loadConfig() {
-  cfgData = await (await fetch('/api/config')).json();
-  const root = $('config-form');
-  root.innerHTML = '';
-  root.appendChild(buildObject(cfgData, 'config'));
-}
-
-function buildObject(obj, path) {
-  const fs = document.createElement('fieldset');
-  const legend = document.createElement('legend');
-  legend.textContent = LEGENDS[path] || path;
-  fs.appendChild(legend);
-  for (const [k, v] of Object.entries(obj)) {
-    // 已迁移到独立 tab 的配置段: 不在配置表单渲染, 保存时原样保留
-    if (path === 'config' && SKIP_SECTIONS.has(k)) {
-      const note = document.createElement('p');
-      note.className = 'muted';
-      note.style.margin = '6px 0';
-      note.textContent = `「${k}」已移至「${SKIP_SECTIONS.get(k)}」tab 编辑`;
-      fs.appendChild(note);
-      continue;
-    }
-    fs.appendChild(buildField(k, v, path + '.' + k));
-  }
-  return fs;
-}
-
-function buildField(key, value, path) {
-  // 嵌套对象: 直接渲染子分组 (legend 已有中文名, 不需要 label 行)
-  if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-    return buildObject(value, path);
-  }
-  const row = document.createElement('div');
-  row.className = 'field';
-  const label = document.createElement('label');
-  const zh = document.createElement('span');
-  zh.textContent = LABELS[key] || key;
-  label.appendChild(zh);
-  label.title = (HINTS[key] ? HINTS[key] + '\n' : '') + path;
-  row.appendChild(label);
-
-  if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-    row.appendChild(buildObject(value, path));
-  } else if (Array.isArray(value)) {
-    const ta = document.createElement('textarea');
-    ta.dataset.path = path;
-    ta.value = JSON.stringify(value, null, 1);
-    ta.rows = Math.min(6, value.length + 1);
-    ta.title = 'JSON 数组，保存前校验格式';
-    row.appendChild(ta);
-  } else if (typeof value === 'boolean') {
-    const cb = document.createElement('input');
-    cb.type = 'checkbox'; cb.checked = value; cb.dataset.path = path;
-    row.appendChild(cb);
-  } else if (typeof value === 'number') {
-    const inp = document.createElement('input');
-    inp.type = 'number'; inp.step = 'any'; inp.value = value; inp.dataset.path = path;
-    row.appendChild(inp);
-  } else {
-    const inp = document.createElement('input');
-    inp.type = 'text'; inp.value = value; inp.dataset.path = path;
-    row.appendChild(inp);
-  }
-  return row;
-}
-
-function collectConfig() {
-  const obj = JSON.parse(JSON.stringify(cfgData));
-  document.querySelectorAll('#config-form [data-path]').forEach(el => {
-    let v;
-    if (el.type === 'checkbox') v = el.checked;
-    else if (el.tagName === 'TEXTAREA') v = JSON.parse(el.value);
-    else if (el.type === 'number') v = el.value === '' ? 0 : parseFloat(el.value);
-    else v = el.value;
-    const keys = el.dataset.path.split('.').slice(1); // 去掉 "config" 前缀
-    let cur = obj;
-    for (let i = 0; i < keys.length - 1; i++) cur = cur[keys[i]];
-    cur[keys[keys.length - 1]] = v;
-  });
-  return obj;
-}
-
-$('btn-save-config').onclick = async () => {
-  let obj;
-  try { obj = collectConfig(); }
-  catch (err) { alert('保存失败：JSON 数组格式有误 → ' + err.message); return; }
-  const r = await (await fetch('/api/config', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(obj),
-  })).json();
-  appendLog('[Console] ' + r.message);
-  if (r.ok) loadConfig();
-};
-$('btn-reload-config').onclick = loadConfig;
-
-/* ---------- 结果 ---------- */
-let currentFile = null;
-
-async function loadResults() {
-  const list = await (await fetch('/api/results')).json();
-  const box = $('result-files');
-  box.innerHTML = '';
-  list.forEach(f => {
-    const b = document.createElement('button');
-    b.className = 'file-btn' + (currentFile === f.name ? ' active' : '');
-    b.textContent = f.name + ' (' + f.count + ')';
-    b.onclick = () => { currentFile = f.name; loadResults(); };
-    box.appendChild(b);
-  });
-  if (currentFile) viewResult(currentFile);
-  else $('result-table').innerHTML = '<p class="muted">点击上方文件查看内容</p>';
-}
-
-async function viewResult(name) {
-  const data = await (await fetch('/api/results/' + encodeURIComponent(name))).json();
-  const holder = $('result-table');
-  if (!data.rows.length) { holder.innerHTML = '<p class="muted">该文件暂无数据</p>'; return; }
-
-  const wrap = document.createElement('div');
-  wrap.className = 'table-wrap';
-  const tbl = document.createElement('table');
-  const thead = document.createElement('thead');
-  const trh = document.createElement('tr');
-  data.headers.forEach(h => { const th = document.createElement('th'); th.textContent = h; trh.appendChild(th); });
-  thead.appendChild(trh); tbl.appendChild(thead);
-  const tbody = document.createElement('tbody');
-  data.rows.forEach(r => {
-    const tr = document.createElement('tr');
-    r.forEach(cell => {
-      const td = document.createElement('td');
-      const s = String(cell);
-      td.textContent = s.length > 50 ? s.slice(0, 50) + '…' : s;
-      if (s.length > 50) { td.title = s; td.style.cursor = 'help'; }
-      tr.appendChild(td);
-    });
-    tbody.appendChild(tr);
-  });
-  tbl.appendChild(tbody);
-  wrap.appendChild(tbl);
-  holder.innerHTML = '';
-  holder.appendChild(wrap);
-}
-$('btn-refresh-results').onclick = loadResults;
-
-/* ---------- 代理池页 (照搬 grok-slim-register1 proxy_settings.html) ---------- */
-function loadProxies() {
-  if (window.__proxyPoolLoaded) {
-    if (window.__proxyPoolReload) window.__proxyPoolReload();
-    return;
-  }
-  window.__proxyPoolLoaded = true;
-  initProxyPool();
-}
-
-function initProxyPool() {
-  const $ = id => document.getElementById(id),
-        esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  let page = 1, total = 0, timer = null, lastRefresh = '';
-
-  async function api(url, o = {}) {
-    const r = await fetch(url, o), d = await r.json().catch(() => ({}));
-    if (!r.ok || d.ok === false) {
-      const e = new Error(d.message || (d.errors?.[0]?.error) || `HTTP ${r.status}`);
-      e.data = d;
-      throw e;
-    }
-    return d;
-  }
-
-  function msg(id, t, ok = null) {
-    const e = $(id);
-    e.textContent = t || '';
-    e.className = 'message ' + (ok === true ? 'ok' : ok === false ? 'bad' : '');
-  }
-
-  const checkedIds = new Set();
-  function selected() {
-    return [...document.querySelectorAll('[data-id]:checked')].map(x => x.dataset.id);
-  }
-  function syncCheckAll() {
-    const boxes = [...document.querySelectorAll('[data-id]')],
-          checked = boxes.filter(x => x.checked).length,
-          all = $('checkAll');
-    all.checked = boxes.length > 0 && checked === boxes.length;
-    all.indeterminate = checked > 0 && checked < boxes.length;
-  }
-  function healthBadge(x) {
-    if (x.cooldown_remaining > 0) return `<span class="badge warn">冷却 ${x.cooldown_remaining}s</span>`;
-    if (!x.enabled) return '<span class="badge">已停用</span>';
-    return `<span class="badge ${x.health === 'healthy' ? 'ok' : x.health === 'unhealthy' ? 'bad' : ''}">${x.health === 'healthy' ? '健康' : x.health === 'unhealthy' ? '不可用' : '未测试'}</span>`;
-  }
-
-  const statColors = [
-    'text-ink-900',
-    'text-leaf-600',
-    'text-brand-600',
-    'text-sun-500',
-    'text-ink-500',
-    'text-rose-500'
-  ];
-
-  function render(d) {
-    total = d.total;
-    lastRefresh = new Date().toLocaleTimeString();
-    const s = d.summary;
-    $('summary').innerHTML = [
-      ['代理总数', s.total],
-      ['健康可用', s.healthy],
-      ['当前占用', s.busy],
-      ['冷却恢复中', s.cooldown],
-      ['已停用', s.disabled],
-      ['重复出口 IP', s.duplicate_egress || 0]
-    ].map((x, idx) => `<div class="stat"><span>${x[0]}</span><b class="${statColors[idx] || ''}">${x[1]}</b></div>`).join('');
-
-    $('directWarning').hidden = s.total !== 0;
-    $('strategy').value = d.settings.strategy;
-    $('defaultScheme').value = d.settings.default_scheme;
-    $('defaultConcurrency').value = d.settings.default_max_concurrency;
-    $('alignGeo').checked = !!d.settings.align_geo;
-
-    $('rows').innerHTML = d.items.map((x, i) => `
-      <tr>
-        <td><input type="checkbox" class="accent-brand-600" data-id="${x.id}" ${checkedIds.has(String(x.id)) ? "checked" : ""}></td>
-        <td>
-          <div class="label-cell">
-            <span class="seq-pill">#${(d.page - 1) * d.per_page + i + 1}</span>
-            <input data-label="${x.id}" value="${esc(x.label)}" placeholder="备注标签" style="width:128px;">
-          </div>
-        </td>
-        <td class="mono">${esc(x.proxy)}</td>
-        <td>${healthBadge(x)}${x.disabled_reason || x.health_message ? `<small>${esc(x.disabled_reason || x.health_message)}</small>` : ''}</td>
-        <td class="mono">${esc(x.egress_ip || '—')} ${x.duplicate_egress ? '<span class="badge warn">重复</span>' : ''}${x.region ? `<small>${esc(x.region)}</small>` : ''}</td>
-        <td class="mono">${x.in_use} / <input data-cap="${x.id}" type="number" min="1" max="64" placeholder="${d.settings.default_max_concurrency}" value="${x.max_concurrency || ''}" style="width:54px;"></td>
-        <td class="mono"><span class="text-leaf-600 font-semibold">${x.success}</span> / <span class="text-rose-500">${x.failures}</span> / <span class="text-sun-600">${x.marked}</span></td>
-        <td style="text-align: right;">
-          <button class="btn" data-move="${x.id}" data-dir="up" title="上移">↑</button>
-          <button class="btn" data-move="${x.id}" data-dir="down" title="下移">↓</button>
-          <button class="btn" data-test-one="${x.id}">测试</button>
-          <button class="btn ${x.enabled ? '' : 'primary'}" data-toggle="${x.id}" data-enabled="${x.enabled ? 1 : 0}">${x.enabled ? '停用' : '启用'}</button>
-        </td>
-      </tr>`).join('');
-
-    $('empty').hidden = d.items.length !== 0;
-    $('pageInfo').textContent = `第 ${d.page} 页 · 共 ${d.total} 条 · ${lastRefresh}${d.per_page > 200 ? ' · 大页手动刷新' : ''}`;
-    $('prev').disabled = d.page <= 1;
-    $('next').disabled = d.page * d.per_page >= d.total;
-
-    document.querySelectorAll('[data-id]').forEach(x => x.onchange = () => {
-      x.checked ? checkedIds.add(x.dataset.id) : checkedIds.delete(x.dataset.id);
-      syncCheckAll();
-    });
-    syncCheckAll();
-    document.querySelectorAll('[data-toggle]').forEach(b => b.onclick = () => b.dataset.enabled === '1' ? patchOne(b.dataset.toggle, {enabled: false}) : bulkProxy('enable', [b.dataset.toggle]));
-    document.querySelectorAll('[data-label]').forEach(x => x.onchange = () => patchOne(x.dataset.label, {label: x.value}));
-    document.querySelectorAll('[data-cap]').forEach(x => x.onchange = () => patchOne(x.dataset.cap, {max_concurrency: x.value ? Number(x.value) : null}));
-    document.querySelectorAll('[data-test-one]').forEach(b => b.onclick = () => testIds([b.dataset.testOne]));
-    document.querySelectorAll('[data-move]').forEach(b => b.onclick = async () => {
-      await api(`/api/proxies/${b.dataset.move}/move`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({direction: b.dataset.dir})});
-      await load();
-    });
-  }
-
-  async function load() {
-    const q = encodeURIComponent($('search').value.trim()),
-          st = encodeURIComponent($('status').value),
-          per = Number($('perPage').value || 50);
-    render(await api(`/api/proxies?page=${page}&per_page=${per}&q=${q}&status=${st}`));
-  }
-  async function patchOne(id, p) {
-    await api('/api/proxies/' + id, {method: 'PATCH', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(p)});
-    await load();
-  }
-
-  $('saveSettings').onclick = async () => {
-    try {
-      await api('/api/proxies/settings', {
-        method: 'PATCH',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          strategy: $('strategy').value,
-          default_scheme: $('defaultScheme').value,
-          default_max_concurrency: Number($('defaultConcurrency').value),
-          align_geo: $('alignGeo').checked
-        })
-      });
-      msg('settingsMessage', '策略已保存', true);
-      await load();
-    } catch (e) {
-      msg('settingsMessage', e.message, false);
-    }
+  $('btn-reload-config').onclick = () => {
+    loadConfig();
+    const cfgMsg = $('configMessage');
+    cfgMsg.className = 'message ok';
+    cfgMsg.textContent = '已重新加载磁盘配置';
   };
 
-  $('addBtn').onclick = () => $('importDialog').showModal();
-  $('closeDialog').onclick = () => $('importDialog').close();
-  $('proxyFile').onchange = async () => {
-    const f = $('proxyFile').files[0];
-    if (f) $('proxyText').value = await f.text();
-    $('importBtn').disabled = true;
-  };
-
-  async function preview() {
-    const body = {text: $('proxyText').value, mode: $('importMode').value};
-    try {
-      const d = await api('/api/proxies/preview', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
-      $('preview').innerHTML = `<b>有效 ${d.valid} 条</b> · 重复 ${d.duplicates} 条<br>` + d.preview.map(x => esc(x.proxy)).join('<br>');
-      $('importBtn').disabled = d.valid === 0;
-      msg('importMessage', '解析通过', true);
-    } catch (e) {
-      const er = e.data?.errors || [];
-      $('preview').innerHTML = er.map(x => `第 ${x.line} 行：${esc(x.error)} · ${esc(x.value)}`).join('<br>') || esc(e.message);
-      $('importBtn').disabled = true;
-      msg('importMessage', '请修正错误行', false);
+  /* ---------- 邮箱服务页 (cf_tempmail) ---------- */
+  function loadEmailTab() {
+    if (window.__emailTabLoaded) {
+      if (window.__emailReload) window.__emailReload();
+      return;
     }
-  }
-  $('previewBtn').onclick = preview;
-  $('importBtn').onclick = async () => {
-    if ($('importMode').value === 'replace' && !confirm('覆盖会删除现有代理，确定继续？')) return;
-    try {
-      const d = await api('/api/proxies/import', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({text: $('proxyText').value, mode: $('importMode').value})});
-      msg('importMessage', `已导入 ${d.added} 条，跳过重复 ${d.duplicates} 条`, true);
-      setTimeout(() => { $('importDialog').close(); load(); }, 500);
-    } catch (e) {
-      msg('importMessage', e.message, false);
-    }
-  };
+    window.__emailTabLoaded = true;
 
-  async function testIds(ids) {
-    if (!ids.length) return msg('listMessage', '请先选择代理', false);
-    msg('listMessage', `正在测试 ${ids.length} 条…`);
-    try {
-      const d = await api('/api/proxies/test', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ids})});
-      msg('listMessage', `测试完成：${d.passed}/${d.total} 通过`, d.passed === d.total);
-      await load();
-    } catch (e) {
-      msg('listMessage', e.message, false);
-      await load();
+    function msg(text, ok = null) {
+      const el = $('emailMessage');
+      el.textContent = text || '';
+      el.className = 'message ' + (ok === true ? 'ok' : ok === false ? 'bad' : '');
     }
-  }
-  async function bulkProxy(action, ids = selected()) {
-    if (!ids.length) return msg('listMessage', '请先选择代理', false);
-    msg('listMessage', action === 'enable' ? `正在测试并启用 ${ids.length} 条…` : `正在停用 ${ids.length} 条…`);
-    const d = await api('/api/proxies/bulk', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ids, action})});
-    msg('listMessage', `已处理 ${d.changed}，失败 ${d.failed}`, d.failed === 0);
-    await load();
-  }
 
-  $('testSelected').onclick = () => testIds(selected());
-  $('enableSelected').onclick = () => bulkProxy('enable');
-  $('disableSelected').onclick = () => bulkProxy('disable');
-  $('setConcurrencySelected').onclick = async () => {
-    const ids = selected();
-    if (!ids.length) return msg('listMessage', '请先选择代理', false);
-    const raw = prompt('输入并发上限 1-64；留空恢复全局默认', '1');
-    if (raw === null) return;
-    const value = raw.trim() === '' ? null : Number(raw);
-    await Promise.all(ids.map(id => api('/api/proxies/' + id, {method: 'PATCH', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({max_concurrency: value})})));
-    await load();
-  };
-  $('deleteSelected').onclick = async () => {
-    const ids = selected();
-    if (!ids.length || !confirm(`删除选中的 ${ids.length} 条代理？`)) return;
-    const d = await api('/api/proxies/delete', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ids})});
-    msg('listMessage', `已删除 ${d.removed}，待释放 ${d.pending}`, true);
-    await load();
-  };
-  $('dedupeBtn').onclick = async () => {
-    if (!confirm('全库去重，各组只保留一条：\n\n1. 相同代理地址（含协议/账号/端口）保留列表顺序第一条；\n2. 相同出口 IP 优先保留健康且启用的那条（仅对已测出出口 IP 的代理生效，未测试的请先「连通测试」）。\n\n占用中的重复项会标记停用、待注册释放后自动清理。确定继续？')) return;
-    msg('listMessage', '正在去重…');
-    try {
-      const d = await api('/api/proxies/dedupe', {method: 'POST', headers: {'Content-Type': 'application/json'}});
-      if (!d.removed && !d.pending) {
-        msg('listMessage', '没有发现重复代理（出口 IP 去重仅覆盖已测试的代理）', true);
-      } else {
-        msg('listMessage', `去重完成：已删除 ${d.removed}（地址重复 ${d.removed_by_spec} · 出口 IP 重复 ${d.removed_by_egress}），待释放 ${d.pending}`, true);
+    async function loadEmailCfg() {
+      try {
+        const cfg = await (await fetch('/api/config')).json();
+        const cf = cfg.cf_tempmail || {};
+        $('cfBase').value = cf.base_url || '';
+        $('cfDomains').value = cf.domains || '';
+        $('cfAutoDomain').checked = !!cf.auto_domain;
+        $('cfRandomSubdomain').checked = !!cf.random_subdomain;
+        $('cfRetries').value = cf.max_request_retries || 5;
+        const adminSet = !!(cf.admin_password);
+        const siteSet = !!(cf.site_password);
+        $('cfAdminKey').value = '';
+        $('cfAdminKey').placeholder = adminSet ? '已配置, 留空保留' : '填了走管理接口, 不受站点密码限制';
+        $('cfSiteToken').value = '';
+        $('cfSiteToken').placeholder = siteSet ? '已配置, 留空保留' : '部署设置 PASSWORDS 时填写';
+      } catch (e) {
+        msg('读取配置失败: ' + e.message, false);
       }
-      await load();
-    } catch (e) {
-      msg('listMessage', e.message, false);
+    }
+
+    async function saveEmailCfg() {
+      msg('正在保存…');
+      const cfg = await (await fetch('/api/config')).json();
+      const cf = cfg.cf_tempmail || (cfg.cf_tempmail = {});
+      cf.base_url = $('cfBase').value.trim();
+      cf.domains = $('cfDomains').value.trim();
+      cf.auto_domain = $('cfAutoDomain').checked;
+      cf.random_subdomain = $('cfRandomSubdomain').checked;
+      cf.max_request_retries = Number($('cfRetries').value) || 5;
+      if ($('cfAdminKey').value.trim()) cf.admin_password = $('cfAdminKey').value.trim();
+      if ($('cfSiteToken').value.trim()) cf.site_password = $('cfSiteToken').value.trim();
+      const r = await (await fetch('/api/config', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cfg),
+      })).json();
+      msg(r.message || (r.ok ? '配置已保存' : '保存失败'), r.ok);
+      await loadEmailCfg();
+      refreshEnvOverview();
+      return r.ok;
+    }
+
+    $('saveEmail').onclick = () => saveEmailCfg().catch(e => msg(e.message, false));
+    $('testEmail').onclick = async () => {
+      try {
+        if (!(await saveEmailCfg())) return;
+        msg('正在执行真实连接测试 (会临时创建一个邮箱地址)…');
+        const d = await (await fetch('/api/email/test', { method: 'POST' })).json();
+        msg(d.message || (d.ok ? '测试通过' : '测试失败'), d.ok);
+      } catch (e) {
+        msg(e.message, false);
+      }
+    };
+
+    window.__emailReload = loadEmailCfg;
+    loadEmailCfg();
+  }
+
+  /* ---------- 结果中心与主控台结果速览 ---------- */
+  const RESULT_FILE_META = {
+    'secured_accounts.txt': { title: '已绑密账号', desc: '邮箱 + 密码 + 辅助邮箱' },
+    'secured_tokens.txt': { title: 'OAuth2 令牌账号', desc: '含 refresh_token 与 access_token' },
+    'secured_no_token.txt': { title: '绑密无令牌', desc: '已绑密但未获取 OAuth2 令牌' },
+    'unbound_accounts.txt': { title: '未绑密初始号', desc: '仅完成基础注册，未绑辅助邮箱' },
+    'recovery_pool.txt': { title: '辅助邮箱池', desc: '可用于后续绑密的邮箱池' },
+  };
+
+  let currentFile = null;
+  let currentResultData = null;
+
+  async function loadQuickResults() {
+    try {
+      const list = await (await fetch('/api/results')).json();
+      const grid = $('quick-results-grid');
+      if (!grid) return;
+      if (!list.length) {
+        grid.innerHTML = '<div class="text-ink-700/45 py-4 text-center font-mono text-xs col-span-full">Results 目录下暂无结果文件</div>';
+        return;
+      }
+      grid.innerHTML = list.map(f => {
+        const meta = RESULT_FILE_META[f.name] || { title: f.name, desc: '结果文件' };
+        return `
+          <button type="button" data-open-result="${escHtml(f.name)}" class="result-file-card">
+            <div class="min-w-0">
+              <div class="font-bold text-xs text-ink-900 truncate">${escHtml(meta.title)}</div>
+              <div class="font-mono text-[11px] text-ink-500 truncate mt-0.5">${escHtml(f.name)}</div>
+            </div>
+            <span class="badge ${f.count > 0 ? 'ok' : ''}">${f.count} 条</span>
+          </button>
+        `;
+      }).join('');
+      grid.querySelectorAll('[data-open-result]').forEach(btn => {
+        btn.onclick = () => {
+          currentFile = btn.dataset.openResult;
+          switchMainTab('results');
+        };
+      });
+    } catch (e) {}
+  }
+
+  async function loadResults() {
+    const list = await (await fetch('/api/results')).json();
+    const box = $('result-files');
+    box.innerHTML = '';
+    if (!currentFile && list.length) {
+      const withData = list.find(x => x.count > 0);
+      currentFile = (withData || list[0]).name;
+    }
+    list.forEach(f => {
+      const meta = RESULT_FILE_META[f.name] || { title: f.name, desc: '结果文件' };
+      const card = document.createElement('button');
+      card.type = 'button';
+      card.className = 'result-file-card' + (currentFile === f.name ? ' active' : '');
+      card.innerHTML = `
+        <div class="min-w-0">
+          <div class="font-bold text-sm text-ink-900 truncate">${escHtml(meta.title)}</div>
+          <div class="font-mono text-[11px] text-ink-500 truncate mt-0.5">${escHtml(f.name)}</div>
+        </div>
+        <span class="badge ${f.count > 0 ? 'ok' : ''}">${f.count}</span>
+      `;
+      card.onclick = () => {
+        currentFile = f.name;
+        loadResults();
+      };
+      box.appendChild(card);
+    });
+    if (currentFile) await viewResult(currentFile);
+    else $('result-table').innerHTML = '<div class="empty">Results 目录下暂无结果文件</div>';
+  }
+
+  async function viewResult(name) {
+    currentResultData = await (await fetch('/api/results/' + encodeURIComponent(name))).json();
+    renderResultTable();
+  }
+
+  function renderResultTable() {
+    const holder = $('result-table');
+    const metaEl = $('result-meta');
+    if (!currentResultData || !currentResultData.rows.length) {
+      metaEl.textContent = (currentResultData ? currentResultData.name : '') + ' · 0 条记录';
+      holder.innerHTML = '<div class="empty">该文件暂无数据记录</div>';
+      return;
+    }
+
+    const q = ($('result-search').value || '').trim().toLowerCase();
+    const filtered = q
+      ? currentResultData.rows.filter(r => r.some(cell => String(cell).toLowerCase().includes(q)))
+      : currentResultData.rows;
+
+    metaEl.textContent = `${currentResultData.name} · 显示 ${filtered.length} / 共 ${currentResultData.rows.length} 条（点击任意单元格可复制）`;
+
+    if (!filtered.length) {
+      holder.innerHTML = '<div class="empty">没有匹配的搜索结果</div>';
+      return;
+    }
+
+    const wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    wrap.style.maxHeight = '62vh';
+    const tbl = document.createElement('table');
+    const thead = document.createElement('thead');
+    const trh = document.createElement('tr');
+
+    const thIdx = document.createElement('th');
+    thIdx.textContent = '#';
+    thIdx.style.width = '52px';
+    trh.appendChild(thIdx);
+
+    currentResultData.headers.forEach(h => {
+      const th = document.createElement('th');
+      th.textContent = h;
+      trh.appendChild(th);
+    });
+    thead.appendChild(trh);
+    tbl.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+    filtered.forEach((r, idx) => {
+      const tr = document.createElement('tr');
+      const tdIdx = document.createElement('td');
+      tdIdx.innerHTML = `<span class="seq-pill">#${idx + 1}</span>`;
+      tr.appendChild(tdIdx);
+
+      const colCount = Math.max(currentResultData.headers.length, r.length);
+      for (let c = 0; c < colCount; c++) {
+        const rawCell = r[c];
+        const td = document.createElement('td');
+        td.className = 'mono';
+        if (rawCell === undefined || rawCell === null || rawCell === '') {
+          td.textContent = '—';
+          td.style.color = '#a8a093';
+        } else {
+          const s = String(rawCell);
+          td.textContent = s.length > 52 ? s.slice(0, 52) + '…' : s;
+          td.title = '点击复制: ' + s;
+          td.style.cursor = 'pointer';
+          td.onclick = () => {
+            navigator.clipboard.writeText(s).then(() => {
+              const msg = $('resultsMessage');
+              msg.className = 'message ok';
+              msg.textContent = '已复制到剪贴板: ' + (s.length > 36 ? s.slice(0, 36) + '…' : s);
+            });
+          };
+        }
+        tr.appendChild(td);
+      }
+      tbody.appendChild(tr);
+    });
+    tbl.appendChild(tbody);
+    wrap.appendChild(tbl);
+    holder.innerHTML = '';
+    holder.appendChild(wrap);
+  }
+
+  $('result-search').oninput = () => renderResultTable();
+  $('btn-refresh-results').onclick = () => {
+    loadResults();
+    const msg = $('resultsMessage');
+    msg.className = 'message ok';
+    msg.textContent = '结果列表已刷新';
+  };
+  $('btn-copy-results').onclick = () => {
+    if (!currentResultData || !currentResultData.rows.length) return;
+    const text = currentResultData.rows.map(r => r.join('---')).join('\n');
+    navigator.clipboard.writeText(text).then(() => {
+      const msg = $('resultsMessage');
+      msg.className = 'message ok';
+      msg.textContent = `已复制 ${currentResultData.rows.length} 条记录到剪贴板`;
+    });
+  };
+  $('btn-download-results').onclick = () => {
+    if (!currentResultData || !currentResultData.rows.length) return;
+    const text = currentResultData.rows.map(r => r.join('---')).join('\n') + '\n';
+    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = currentResultData.name || 'results.txt';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
+  /* ---------- 代理池页 ---------- */
+  function loadProxies() {
+    if (window.__proxyPoolLoaded) {
+      if (window.__proxyPoolReload) window.__proxyPoolReload();
+      return;
+    }
+    window.__proxyPoolLoaded = true;
+    initProxyPool();
+  }
+
+  function initProxyPool() {
+    const esc = escHtml;
+    let page = 1, total = 0, timer = null, lastRefresh = '';
+
+    async function api(url, o = {}) {
+      const r = await fetch(url, o), d = await r.json().catch(() => ({}));
+      if (!r.ok || d.ok === false) {
+        const e = new Error(d.message || (d.errors?.[0]?.error) || `HTTP ${r.status}`);
+        e.data = d;
+        throw e;
+      }
+      return d;
+    }
+
+    function msg(id, t, ok = null) {
+      const e = $(id);
+      e.textContent = t || '';
+      e.className = 'message ' + (ok === true ? 'ok' : ok === false ? 'bad' : '');
+    }
+
+    const checkedIds = new Set();
+    function selected() {
+      return [...document.querySelectorAll('[data-id]:checked')].map(x => x.dataset.id);
+    }
+    function syncCheckAll() {
+      const boxes = [...document.querySelectorAll('[data-id]')],
+            checked = boxes.filter(x => x.checked).length,
+            all = $('checkAll');
+      all.checked = boxes.length > 0 && checked === boxes.length;
+      all.indeterminate = checked > 0 && checked < boxes.length;
+    }
+    function healthBadge(x) {
+      if (x.cooldown_remaining > 0) return `<span class="badge warn">冷却 ${x.cooldown_remaining}s</span>`;
+      if (!x.enabled) return '<span class="badge">已停用</span>';
+      return `<span class="badge ${x.health === 'healthy' ? 'ok' : x.health === 'unhealthy' ? 'bad' : ''}">${x.health === 'healthy' ? '健康' : x.health === 'unhealthy' ? '不可用' : '未测试'}</span>`;
+    }
+
+    const statColors = [
+      'text-ink-900',
+      'text-leaf-600',
+      'text-brand-600',
+      'text-sun-500',
+      'text-ink-500',
+      'text-rose-500'
+    ];
+
+    function render(d) {
+      total = d.total;
+      lastRefresh = new Date().toLocaleTimeString();
+      const s = d.summary;
+      $('summary').innerHTML = [
+        ['代理总数', s.total],
+        ['健康可用', s.healthy],
+        ['当前占用', s.busy],
+        ['冷却恢复中', s.cooldown],
+        ['已停用', s.disabled],
+        ['重复出口 IP', s.duplicate_egress || 0]
+      ].map((x, idx) => `<div class="stat"><span>${x[0]}</span><b class="${statColors[idx] || ''}">${x[1]}</b></div>`).join('');
+
+      $('directWarning').hidden = s.total !== 0;
+      $('strategy').value = d.settings.strategy;
+      $('defaultScheme').value = d.settings.default_scheme;
+      $('defaultConcurrency').value = d.settings.default_max_concurrency;
+      $('alignGeo').checked = !!d.settings.align_geo;
+
+      $('rows').innerHTML = d.items.map((x, i) => `
+        <tr>
+          <td><input type="checkbox" class="accent-brand-600" data-id="${x.id}" ${checkedIds.has(String(x.id)) ? "checked" : ""}></td>
+          <td>
+            <div class="label-cell">
+              <span class="seq-pill">#${(d.page - 1) * d.per_page + i + 1}</span>
+              <input data-label="${x.id}" value="${esc(x.label)}" placeholder="备注标签" style="width:128px;">
+            </div>
+          </td>
+          <td class="mono">${esc(x.proxy)}</td>
+          <td>${healthBadge(x)}${x.disabled_reason || x.health_message ? `<small>${esc(x.disabled_reason || x.health_message)}</small>` : ''}</td>
+          <td class="mono">${esc(x.egress_ip || '—')} ${x.duplicate_egress ? '<span class="badge warn">重复</span>' : ''}${x.region ? `<small>${esc(x.region)}</small>` : ''}</td>
+          <td class="mono">${x.in_use} / <input data-cap="${x.id}" type="number" min="1" max="64" placeholder="${d.settings.default_max_concurrency}" value="${x.max_concurrency || ''}" style="width:54px;"></td>
+          <td class="mono"><span class="text-leaf-600 font-semibold">${x.success}</span> / <span class="text-rose-500">${x.failures}</span> / <span class="text-sun-600">${x.marked}</span></td>
+          <td style="text-align: right;">
+            <button class="btn" data-move="${x.id}" data-dir="up" title="上移">↑</button>
+            <button class="btn" data-move="${x.id}" data-dir="down" title="下移">↓</button>
+            <button class="btn" data-test-one="${x.id}">测试</button>
+            <button class="btn ${x.enabled ? '' : 'primary'}" data-toggle="${x.id}" data-enabled="${x.enabled ? 1 : 0}">${x.enabled ? '停用' : '启用'}</button>
+          </td>
+        </tr>`).join('');
+
+      $('empty').hidden = d.items.length !== 0;
+      $('pageInfo').textContent = `第 ${d.page} 页 · 共 ${d.total} 条 · ${lastRefresh}${d.per_page > 200 ? ' · 大页手动刷新' : ''}`;
+      $('prev').disabled = d.page <= 1;
+      $('next').disabled = d.page * d.per_page >= d.total;
+
+      document.querySelectorAll('[data-id]').forEach(x => x.onchange = () => {
+        x.checked ? checkedIds.add(x.dataset.id) : checkedIds.delete(x.dataset.id);
+        syncCheckAll();
+      });
+      syncCheckAll();
+      document.querySelectorAll('[data-toggle]').forEach(b => b.onclick = () => b.dataset.enabled === '1' ? patchOne(b.dataset.toggle, {enabled: false}) : bulkProxy('enable', [b.dataset.toggle]));
+      document.querySelectorAll('[data-label]').forEach(x => x.onchange = () => patchOne(x.dataset.label, {label: x.value}));
+      document.querySelectorAll('[data-cap]').forEach(x => x.onchange = () => patchOne(x.dataset.cap, {max_concurrency: x.value ? Number(x.value) : null}));
+      document.querySelectorAll('[data-test-one]').forEach(b => b.onclick = () => testIds([b.dataset.testOne]));
+      document.querySelectorAll('[data-move]').forEach(b => b.onclick = async () => {
+        await api(`/api/proxies/${b.dataset.move}/move`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({direction: b.dataset.dir})});
+        await load();
+      });
+    }
+
+    async function load() {
+      const q = encodeURIComponent($('search').value.trim()),
+            st = encodeURIComponent($('status').value),
+            per = Number($('perPage').value || 50);
+      render(await api(`/api/proxies?page=${page}&per_page=${per}&q=${q}&status=${st}`));
+    }
+    async function patchOne(id, p) {
+      await api('/api/proxies/' + id, {method: 'PATCH', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(p)});
       await load();
     }
-  };
 
-  $('checkAll').onchange = e => {
-    document.querySelectorAll('[data-id]').forEach(x => {
-      x.checked = e.target.checked;
-      e.target.checked ? checkedIds.add(x.dataset.id) : checkedIds.delete(x.dataset.id);
+    $('saveSettings').onclick = async () => {
+      try {
+        await api('/api/proxies/settings', {
+          method: 'PATCH',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            strategy: $('strategy').value,
+            default_scheme: $('defaultScheme').value,
+            default_max_concurrency: Number($('defaultConcurrency').value),
+            align_geo: $('alignGeo').checked
+          })
+        });
+        msg('settingsMessage', '策略已保存', true);
+        await load();
+      } catch (e) {
+        msg('settingsMessage', e.message, false);
+      }
+    };
+
+    $('addBtn').onclick = () => $('importDialog').showModal();
+    $('closeDialog').onclick = () => $('importDialog').close();
+    $('proxyFile').onchange = async () => {
+      const f = $('proxyFile').files[0];
+      if (f) $('proxyText').value = await f.text();
+      $('importBtn').disabled = true;
+    };
+
+    async function preview() {
+      const body = {text: $('proxyText').value, mode: $('importMode').value};
+      try {
+        const d = await api('/api/proxies/preview', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+        $('preview').innerHTML = `<b>有效 ${d.valid} 条</b> · 重复 ${d.duplicates} 条<br>` + d.preview.map(x => esc(x.proxy)).join('<br>');
+        $('importBtn').disabled = d.valid === 0;
+        msg('importMessage', '解析通过', true);
+      } catch (e) {
+        const er = e.data?.errors || [];
+        $('preview').innerHTML = er.map(x => `第 ${x.line} 行：${esc(x.error)} · ${esc(x.value)}`).join('<br>') || esc(e.message);
+        $('importBtn').disabled = true;
+        msg('importMessage', '请修正错误行', false);
+      }
+    }
+    $('previewBtn').onclick = preview;
+    $('importBtn').onclick = async () => {
+      if ($('importMode').value === 'replace' && !confirm('覆盖会删除现有代理，确定继续？')) return;
+      try {
+        const d = await api('/api/proxies/import', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({text: $('proxyText').value, mode: $('importMode').value})});
+        msg('importMessage', `已导入 ${d.added} 条，跳过重复 ${d.duplicates} 条`, true);
+        setTimeout(() => { $('importDialog').close(); load(); refreshEnvOverview(); }, 500);
+      } catch (e) {
+        msg('importMessage', e.message, false);
+      }
+    };
+
+    async function testIds(ids) {
+      if (!ids.length) return msg('listMessage', '请先选择代理', false);
+      msg('listMessage', `正在测试 ${ids.length} 条…`);
+      try {
+        const d = await api('/api/proxies/test', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ids})});
+        msg('listMessage', `测试完成：${d.passed}/${d.total} 通过`, d.passed === d.total);
+        await load();
+      } catch (e) {
+        msg('listMessage', e.message, false);
+        await load();
+      }
+    }
+    async function bulkProxy(action, ids = selected()) {
+      if (!ids.length) return msg('listMessage', '请先选择代理', false);
+      msg('listMessage', action === 'enable' ? `正在测试并启用 ${ids.length} 条…` : `正在停用 ${ids.length} 条…`);
+      const d = await api('/api/proxies/bulk', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ids, action})});
+      msg('listMessage', `已处理 ${d.changed}，失败 ${d.failed}`, d.failed === 0);
+      await load();
+    }
+
+    $('testSelected').onclick = () => testIds(selected());
+    $('enableSelected').onclick = () => bulkProxy('enable');
+    $('disableSelected').onclick = () => bulkProxy('disable');
+    $('setConcurrencySelected').onclick = async () => {
+      const ids = selected();
+      if (!ids.length) return msg('listMessage', '请先选择代理', false);
+      const raw = prompt('输入并发上限 1-64；留空恢复全局默认', '1');
+      if (raw === null) return;
+      const value = raw.trim() === '' ? null : Number(raw);
+      await Promise.all(ids.map(id => api('/api/proxies/' + id, {method: 'PATCH', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({max_concurrency: value})})));
+      await load();
+    };
+    $('deleteSelected').onclick = async () => {
+      const ids = selected();
+      if (!ids.length || !confirm(`删除选中的 ${ids.length} 条代理？`)) return;
+      const d = await api('/api/proxies/delete', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ids})});
+      msg('listMessage', `已删除 ${d.removed}，待释放 ${d.pending}`, true);
+      await load();
+      refreshEnvOverview();
+    };
+    $('dedupeBtn').onclick = async () => {
+      if (!confirm('全库去重，各组只保留一条：\n\n1. 相同代理地址（含协议/账号/端口）保留列表顺序第一条；\n2. 相同出口 IP 优先保留健康且启用的那条（仅对已测出出口 IP 的代理生效，未测试的请先「连通测试」）。\n\n占用中的重复项会标记停用、待注册释放后自动清理。确定继续？')) return;
+      msg('listMessage', '正在去重…');
+      try {
+        const d = await api('/api/proxies/dedupe', {method: 'POST', headers: {'Content-Type': 'application/json'}});
+        if (!d.removed && !d.pending) {
+          msg('listMessage', '没有发现重复代理（出口 IP 去重仅覆盖已测试的代理）', true);
+        } else {
+          msg('listMessage', `去重完成：已删除 ${d.removed}（地址重复 ${d.removed_by_spec} · 出口 IP 重复 ${d.removed_by_egress}），待释放 ${d.pending}`, true);
+        }
+        await load();
+      } catch (e) {
+        msg('listMessage', e.message, false);
+        await load();
+      }
+    };
+
+    $('checkAll').onchange = e => {
+      document.querySelectorAll('[data-id]').forEach(x => {
+        x.checked = e.target.checked;
+        e.target.checked ? checkedIds.add(x.dataset.id) : checkedIds.delete(x.dataset.id);
+      });
+      syncCheckAll();
+    };
+    $('search').oninput = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => { page = 1; checkedIds.clear(); load(); }, 300);
+    };
+    $('status').onchange = () => { page = 1; checkedIds.clear(); load(); };
+    $('prev').onclick = () => { page--; checkedIds.clear(); load(); };
+    $('next').onclick = () => { page++; checkedIds.clear(); load(); };
+    $('refreshBtn').onclick = load;
+    $('perPage').value = localStorage.getItem('proxyPerPage') || '50';
+    $('perPage').onchange = () => {
+      localStorage.setItem('proxyPerPage', $('perPage').value);
+      page = 1;
+      load();
+    };
+    $('exportBtn').onclick = () => window.open('/api/proxies/export', '_blank');
+
+    const proxyTabActive = () => !$('tab-proxy').hidden;
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && proxyTabActive() && Number($('perPage').value) <= 200) load();
     });
-    syncCheckAll();
-  };
-  $('search').oninput = () => {
-    clearTimeout(timer);
-    timer = setTimeout(() => { page = 1; checkedIds.clear(); load(); }, 300);
-  };
-  $('status').onchange = () => { page = 1; checkedIds.clear(); load(); };
-  $('prev').onclick = () => { page--; checkedIds.clear(); load(); };
-  $('next').onclick = () => { page++; checkedIds.clear(); load(); };
-  $('refreshBtn').onclick = load;
-  $('perPage').value = localStorage.getItem('proxyPerPage') || '50';
-  $('perPage').onchange = () => {
-    localStorage.setItem('proxyPerPage', $('perPage').value);
-    page = 1;
-    load();
-  };
-  $('exportBtn').onclick = () => window.open('/api/proxies/export', '_blank');
+    setInterval(() => {
+      if (!document.hidden && proxyTabActive() && !$('importDialog').open && Number($('perPage').value) <= 200) load().catch(() => {});
+    }, 3000);
 
-  const proxyTabActive = () => !$('tab-proxy').hidden;
-  document.addEventListener('visibilitychange', () => {
-    if (!document.hidden && proxyTabActive() && Number($('perPage').value) <= 200) load();
-  });
-  setInterval(() => {
-    if (!document.hidden && proxyTabActive() && !$('importDialog').open && Number($('perPage').value) <= 200) load().catch(() => {});
-  }, 3000);
+    load().catch(e => msg('listMessage', e.message, false));
+    window.__proxyPoolReload = () => { if (proxyTabActive()) load().catch(() => {}); };
+  }
 
-  load().catch(e => msg('listMessage', e.message, false));
-  window.__proxyPoolReload = () => { if (proxyTabActive()) load().catch(() => {}); };
-}
-
-/* ---------- 初始化 ---------- */
-const HINTS = {
-  email_suffix: '注册域名后缀: @outlook.com 或 @hotmail.com',
-  proxy: '代理地址，留空直连（浏览器不会走系统代理，需显式指定）',
-  bot_protection_wait: '反机器人检测等待秒数',
-  max_captcha_retries: '验证码最大重试次数',
-  concurrent_flows: '并发浏览器数量',
-  max_tasks: '总注册任务数',
-  enable_oauth2: '是否注册后走 OAuth2 拿 token',
-  client_id: 'Azure 应用 client id',
-  redirect_url: 'OAuth2 回调地址，如 http://localhost:8000',
-  headless: '无头模式，注册任务建议 false（无头易被检测）',
-  geoip: '时区/语言/经纬度自动跟随代理 IP',
-  humanize: '鼠标移动拟人轨迹',
-  locale: '锁定浏览器语言（注册依赖中文页面，保持 zh-CN；留空则跟随出口 IP）',
-  os: '指纹 OS（macOS 上默认 macos，Windows 身份在 Mac 有头模式会中文乱码）',
-  version: '指定 camoufox 运行时版本（如 158.0-beta.40），留空用 pip 包锁定版本',
-  keep_browser: '注册结束后保留浏览器窗口，便于人工检查结果',
-  block_images: '禁止加载图片省流量（易被 WAF 检测，默认关闭）',
-  block_webrtc: '屏蔽 WebRTC（geoip 已伪装 IP 时无需开启）',
-};
-
-connectWS();
-fetchStatus();
-setInterval(() => { if (!ws || ws.readyState !== 1) fetchStatus(); }, 5000);
-</script>
+  /* ---------- 初始化 ---------- */
+  connectWS();
+  fetchStatus();
+  refreshEnvOverview();
+  loadQuickResults();
+  setInterval(() => { if (!ws || ws.readyState !== 1) fetchStatus(); }, 5000);
+  </script>
 </body>
 </html>

@@ -36,7 +36,7 @@ on:
       - Dockerfile
       - docker/**
       - requirements.txt
-      - config.json
+      - config.example.json
       - main.py
       - web_console.py
       - proxy_pool.py

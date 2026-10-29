@@ -1,0 +1,40 @@
+{
+    "proxy": "",
+    "email_suffix": "@outlook.com",
+    "bot_protection_wait": 16,
+    "max_captcha_retries": 4,
+    "concurrent_flows": 1,
+    "max_tasks": 1,
+    "oauth2": {
+        "enable_oauth2": false,
+        "client_id": "",
+        "redirect_url": "",
+        "Scopes": [
+            "offline_access",
+            "https://graph.microsoft.com/Mail.ReadWrite",
+            "https://graph.microsoft.com/Mail.Send",
+            "https://graph.microsoft.com/User.Read"
+        ],
+        "client_secret": ""
+    },
+    "camoufox": {
+        "headless": false,
+        "geoip": true,
+        "humanize": true,
+        "locale": "zh-CN",
+        "os": "macos",
+        "version": "158.0-beta.40",
+        "keep_browser": true,
+        "block_images": false,
+        "block_webrtc": false
+    },
+    "cf_tempmail": {
+        "base_url": "",
+        "admin_password": "",
+        "site_password": "",
+        "domains": "tgainge.com",
+        "max_request_retries": 5,
+        "auto_domain": false,
+        "random_subdomain": false
+    }
+}

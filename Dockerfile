@@ -123,7 +123,7 @@ COPY main.py web_console.py proxy_pool.py proxy_probe.py utils.py get_token.py .
 COPY controllers/ ./controllers/
 COPY web/ ./web/
 # 默认配置模板：entrypoint 首次启动复制为 /app/config.json（可被同名卷覆盖）
-COPY config.json /app/config.default.json
+COPY config.example.json /app/config.default.json
 
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh

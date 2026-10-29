@@ -4,8 +4,9 @@ __pycache__/
 .venv/
 venv/
 
-# 运行产物
+# 运行产物 / 本地配置（真实凭据只留本地）
 Results/
+config.json
 config.json.bak
 data/
 *.lock

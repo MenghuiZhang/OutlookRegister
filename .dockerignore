@@ -11,6 +11,7 @@ __pycache__
 *.lock
 Results
 data
+config.json
 config.json.bak
 readme.md
 readme_en.md

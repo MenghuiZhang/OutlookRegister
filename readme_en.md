@@ -55,6 +55,21 @@ python web_console.py 9000       # custom port
 
 Start/stop tasks with live logs / form-based config editing (auto-backup `config.json.bak`) / results as tables.
 
+### Docker
+
+Pushing to `main` (or tagging `v*`) triggers GitHub Actions to build a multi-arch image (amd64/arm64) and push it to GHCR:
+
+```bash
+docker pull ghcr.io/menghuizhang/outlookregister:latest
+docker run -d -p 8788:8788 \
+  -v ./data:/app/data -v ./Results:/app/Results \
+  --name outlookregister ghcr.io/menghuizhang/outlookregister:latest
+```
+
+Or with compose: `docker compose up -d --build`. The image ships Xvfb, so headed mode (`headless: false`) works out of the box; mount `data/` (proxy pool & console accounts) and `Results/` volumes for persistence.
+
+The browser version comes from the `CAMOUFOX_VERSION` build arg (default `official/158.0-beta.40`) and must match the `camoufox.version` prefix in `config.json`; override via repo Variables in CI (`CAMOUFOX_VERSION` / `CAMOUFOX_ZIP_URL` / `CAMOUFOX_MODEL_URL` / `OUTLOOK_PLATFORMS`).
+
 ### Result Files
 
 - `secured_accounts.txt` / `secured_no_token.txt` — registered + bound

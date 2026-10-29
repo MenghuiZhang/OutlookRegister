@@ -1,0 +1,17 @@
+services:
+  outlookregister:
+    image: ghcr.io/menghuizhang/outlookregister:latest
+    # 本地构建: docker compose up -d --build
+    build: .
+    container_name: outlookregister
+    ports:
+      - "8788:8788"
+    volumes:
+      # 控制台账号 (data/ui_auth.json) 与代理池配置
+      - ./data:/app/data
+      # 注册结果
+      - ./Results:/app/Results
+      # 配置持久化: 提前把 config.json 复制到本地再挂载, 之后 Web 控制台的修改都会保留
+      # - ./config.json:/app/config.json
+    # 有头模式已由镜像内 Xvfb 支持; 无需额外配置
+    restart: unless-stopped

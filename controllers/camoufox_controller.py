@@ -44,9 +44,11 @@ class CamoufoxController(BaseBrowserController):
         import glob
         if sys.platform == "darwin":
             base = os.path.expanduser("~/Library/Caches/camoufox/browsers/official")
+            hits = sorted(glob.glob(os.path.join(base, f"{version}*/Camoufox.app/Contents/MacOS/camoufox")))
         else:
+            # Linux 布局: ~/.cache/camoufox/browsers/official/<ver>-<build>-<sha8>/camoufox-bin
             base = os.path.expanduser("~/.cache/camoufox/browsers/official")
-        hits = sorted(glob.glob(os.path.join(base, f"{version}*/Camoufox.app/Contents/MacOS/camoufox")))
+            hits = sorted(glob.glob(os.path.join(base, f"{version}*/camoufox-bin")))
         return hits[-1] if hits else None
 
     def launch_browser(self):

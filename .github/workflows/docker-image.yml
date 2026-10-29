@@ -1,0 +1,265 @@
+name: Build Docker image
+
+# 三种触发：
+# 1) 手动 Run workflow（可选平台 / 是否推送）
+# 2) push 到 main 或打 v* tag → 构建并推送到 GHCR
+# 3) PR 改动构建相关文件 → 只构建不推送（校验能编过）
+#
+# 构建策略（原生 runner 并行，不走 QEMU）：
+# - amd64 在 ubuntu-latest（x64 原生）构建
+# - arm64 在 ubuntu-24.04-arm（ARM 原生，公开仓库免费）构建
+# - 两个 job 并行按 digest 推送，最后 merge job 用 imagetools 合并成多架构 manifest
+# - GHA 缓存按 scope=amd64 / scope=arm64 分开存；清理由 cleanup-cache.yml 每周定时做
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: "构建平台（双平台会在两种原生 runner 上并行构建）"
+        type: choice
+        options:
+          - linux/amd64
+          - linux/arm64
+          - linux/amd64,linux/arm64
+        default: linux/amd64,linux/arm64
+      push:
+        description: "推送到 GHCR"
+        type: boolean
+        default: true
+  push:
+    branches: [main]
+    tags: ["v*"]
+    # 只改文档不必重新构建镜像
+    paths-ignore:
+      - "**.md"
+  pull_request:
+    paths:
+      - Dockerfile
+      - docker/**
+      - requirements.txt
+      - config.json
+      - main.py
+      - web_console.py
+      - proxy_pool.py
+      - proxy_probe.py
+      - utils.py
+      - get_token.py
+      - controllers/**
+      - web/**
+      - .github/workflows/docker-image.yml
+
+concurrency:
+  group: docker-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  cfg:
+    name: 解析构建参数
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.cfg.outputs.image }}
+      camoufox_version: ${{ steps.cfg.outputs.camoufox_version }}
+      build_amd64: ${{ steps.cfg.outputs.build_amd64 }}
+      build_arm64: ${{ steps.cfg.outputs.build_arm64 }}
+      push: ${{ steps.cfg.outputs.push }}
+    steps:
+      - name: 解析构建参数
+        id: cfg
+        run: |
+          # GHCR 镜像名必须全小写（ghcr.io/<owner>/<repo>）
+          echo "image=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+          # 平台优先级：手动输入 > 仓库变量 OUTLOOK_PLATFORMS > 默认双架构
+          # 想固定单架构就在 Settings → Variables 配 OUTLOOK_PLATFORMS=linux/amd64（构建更快）
+          platform="${{ inputs.platform || vars.OUTLOOK_PLATFORMS || 'linux/amd64,linux/arm64' }}"
+          case "$platform" in *amd64*) echo "build_amd64=true" >> "$GITHUB_OUTPUT";; *) echo "build_amd64=false" >> "$GITHUB_OUTPUT";; esac
+          case "$platform" in *arm64*) echo "build_arm64=true" >> "$GITHUB_OUTPUT";; *) echo "build_arm64=false" >> "$GITHUB_OUTPUT";; esac
+          # 浏览器版本：仓库变量 CAMOUFOX_VERSION > 默认（须与 config.json 的 camoufox.version 一致）
+          echo "camoufox_version=${{ vars.CAMOUFOX_VERSION || 'official/158.0-beta.40' }}" >> "$GITHUB_OUTPUT"
+          # PR 只构建不推送；workflow_dispatch 时尊重 push 开关
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "push=false" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.push }}" = "false" ]; then
+            echo "push=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "push=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  build-amd64:
+    name: Build linux/amd64
+    needs: cfg
+    if: needs.cfg.outputs.build_amd64 == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: 释放磁盘空间
+        # 镜像含 ~1.3GB 浏览器 + 指纹模型，先清理预装 SDK 保险
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL || true
+          sudo docker image prune -af || true
+          df -h /
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login GHCR
+        if: needs.cfg.outputs.push == 'true'
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build（按 digest 推送，tags 由 merge job 统一打）
+        id: build
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/amd64
+          push: ${{ needs.cfg.outputs.push == 'true' }}
+          # 推送时按 digest 匿名推送（push-by-digest），tag 由 merge job 统一打；
+          # PR 校验时只构建加载到本地 docker，不推送
+          # 注意：不能写成 push=='true' && '' || ... —— 空串是 falsy，|| 会取到 tag，
+          # 导致 push-by-digest 时带上 tag 而 buildx 报错
+          tags: ${{ needs.cfg.outputs.push != 'true' && 'ci-validate:local' || '' }}
+          outputs: ${{ needs.cfg.outputs.push == 'true' && format('type=image,name={0},push-by-digest=true,name-canonical=true,push=true', needs.cfg.outputs.image) || 'type=docker' }}
+          # CI runner 能访问 GitHub Releases，用在线安装；
+          # 想用镜像/反代：在仓库 Variables 里配 CAMOUFOX_ZIP_URL / CAMOUFOX_MODEL_URL，
+          # 留空走 GitHub 官方（双架构构建需传对应架构的 zip）
+          build-args: |
+            CAMOUFOX_VERSION=${{ needs.cfg.outputs.camoufox_version }}
+            CAMOUFOX_ZIP_URL=${{ vars.CAMOUFOX_ZIP_URL }}
+            CAMOUFOX_MODEL_URL=${{ vars.CAMOUFOX_MODEL_URL }}
+          # 缓存按架构分 scope 存，平时构建照常增量复用；每周由 cleanup-cache.yml 统一清一次
+          cache-from: type=gha,scope=amd64
+          cache-to: type=gha,mode=max,scope=amd64
+          provenance: false
+
+      - name: 导出 digest
+        if: needs.cfg.outputs.push == 'true'
+        run: |
+          mkdir -p "${{ runner.temp }}/digests"
+          digest="${{ steps.build.outputs.digest }}"
+          touch "${{ runner.temp }}/digests/${digest#sha256:}"
+
+      - name: 上传 digest
+        if: needs.cfg.outputs.push == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests-amd64
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  build-arm64:
+    name: Build linux/arm64
+    needs: cfg
+    if: needs.cfg.outputs.build_arm64 == 'true'
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: 释放磁盘空间
+        # arm runner 预装内容略有差异，统一 || true
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL || true
+          sudo docker image prune -af || true
+          df -h /
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login GHCR
+        if: needs.cfg.outputs.push == 'true'
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build（按 digest 推送，tags 由 merge job 统一打）
+        id: build
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/arm64
+          push: ${{ needs.cfg.outputs.push == 'true' }}
+          tags: ${{ needs.cfg.outputs.push != 'true' && 'ci-validate:local' || '' }}
+          outputs: ${{ needs.cfg.outputs.push == 'true' && format('type=image,name={0},push-by-digest=true,name-canonical=true,push=true', needs.cfg.outputs.image) || 'type=docker' }}
+          build-args: |
+            CAMOUFOX_VERSION=${{ needs.cfg.outputs.camoufox_version }}
+            CAMOUFOX_ZIP_URL=${{ vars.CAMOUFOX_ZIP_URL }}
+            CAMOUFOX_MODEL_URL=${{ vars.CAMOUFOX_MODEL_URL }}
+          cache-from: type=gha,scope=arm64
+          cache-to: type=gha,mode=max,scope=arm64
+          provenance: false
+
+      - name: 导出 digest
+        if: needs.cfg.outputs.push == 'true'
+        run: |
+          mkdir -p "${{ runner.temp }}/digests"
+          digest="${{ steps.build.outputs.digest }}"
+          touch "${{ runner.temp }}/digests/${digest#sha256:}"
+
+      - name: 上传 digest
+        if: needs.cfg.outputs.push == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests-arm64
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    name: 合并多架构镜像
+    needs: [cfg, build-amd64, build-arm64]
+    # 允许单平台手动构建时跳过的架构不影响合并
+    if: |
+      !cancelled() &&
+      needs.cfg.outputs.push == 'true' &&
+      (needs.build-amd64.result == 'success' || needs.build-amd64.result == 'skipped') &&
+      (needs.build-arm64.result == 'success' || needs.build-arm64.result == 'skipped')
+    runs-on: ubuntu-latest
+    steps:
+      - name: 下载 digest
+        uses: actions/download-artifact@v5
+        with:
+          path: ${{ runner.temp }}/digests
+          pattern: digests-*
+          merge-multiple: true
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 计算 tags / labels
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ needs.cfg.outputs.image }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=ref,event=tag
+            type=ref,event=branch
+            type=sha,format=short
+
+      - name: 合并 manifest 并推送
+        working-directory: ${{ runner.temp }}/digests
+        run: |
+          docker buildx imagetools create \
+            $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf "${{ needs.cfg.outputs.image }}@sha256:%s " *)
+
+      - name: 检查镜像
+        run: docker buildx imagetools inspect "${{ needs.cfg.outputs.image }}:${{ steps.meta.outputs.version }}"

@@ -55,6 +55,21 @@ python web_console.py 9000       # 自定义端口
 
 任务启停与实时日志 / 配置表单化编辑（自动备份 `config.json.bak`）/ 结果表格查看。
 
+### Docker 部署
+
+推送到 `main`（或打 `v*` tag）会由 GitHub Actions 自动构建多架构镜像（amd64/arm64）并推送 GHCR：
+
+```bash
+docker pull ghcr.io/menghuizhang/outlookregister:latest
+docker run -d -p 8788:8788 \
+  -v ./data:/app/data -v ./Results:/app/Results \
+  --name outlookregister ghcr.io/menghuizhang/outlookregister:latest
+```
+
+或使用 compose：`docker compose up -d --build`。镜像内置 Xvfb 虚拟显示，容器内 `headless: false` 有头模式可直接运行；`data/`（代理池与控制台账号）与 `Results/` 建议挂卷持久化。
+
+浏览器版本由构建参数 `CAMOUFOX_VERSION`（默认 `official/158.0-beta.40`）决定，须与 `config.json` 的 `camoufox.version` 前缀一致；CI 中可在仓库 Variables 里覆盖（`CAMOUFOX_VERSION` / `CAMOUFOX_ZIP_URL` / `CAMOUFOX_MODEL_URL` / `OUTLOOK_PLATFORMS`）。
+
 ### 结果文件
 
 - `secured_accounts.txt` / `secured_no_token.txt` —— 注册 + 绑定成功

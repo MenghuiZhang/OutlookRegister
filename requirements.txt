@@ -1,5 +1,7 @@
 faker
 requests
-camoufox[geoip]
+camoufox[geoip]==0.5.8
 fastapi
 uvicorn[standard]
+# playwright 版本与 docker/patch_playwright_driver.py 的补丁目标绑定, 升级需同步更新补丁
+playwright==1.62.0

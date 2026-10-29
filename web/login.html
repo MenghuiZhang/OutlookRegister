@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>登录 · OutlookRegister 控制台</title>
+  <style>
+    :root {
+      --font-sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
+      --ink: #181511;
+      --muted: #6e675b;
+      --brand: #2574eb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      background-color: #f7f5ef;
+      background-image:
+        radial-gradient(1000px 480px at 0% 0%, rgba(37, 116, 235, 0.07), transparent 60%),
+        radial-gradient(900px 450px at 100% 5%, rgba(22, 156, 98, 0.06), transparent 55%),
+        linear-gradient(180deg, #fcfbf9 0%, #f3efe6 100%);
+      background-attachment: fixed;
+      color: var(--ink);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      -webkit-font-smoothing: antialiased;
+    }
+    .login-card {
+      width: 100%;
+      max-width: 26rem;
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid rgba(34, 30, 24, 0.09);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 12px 32px -6px rgba(34, 30, 24, 0.07), 0 2px 8px -2px rgba(34, 30, 24, 0.04);
+      border-radius: 1rem;
+      padding: 2rem 2rem 1.75rem;
+    }
+    .brand { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem; }
+    .logo-mark {
+      height: 3rem;
+      width: 3rem;
+      border-radius: 0.85rem;
+      background: linear-gradient(135deg, #2574eb 0%, #1b62d1 50%, #169c62 100%);
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 1.4rem;
+      box-shadow: 0 6px 16px -4px rgba(37, 116, 235, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+      flex-shrink: 0;
+    }
+    .brand h1 { margin: 0; font-size: 1.15rem; font-weight: 700; letter-spacing: -0.01em; }
+    .brand p { margin: 0.15rem 0 0; font-size: 0.75rem; color: var(--muted); }
+    .field {
+      width: 100%;
+      height: 2.5rem;
+      border-radius: 0.65rem;
+      border: 1.5px solid #dcd4c4;
+      background: #fff;
+      padding: 0 0.8rem;
+      font-size: 0.9rem;
+      color: var(--ink);
+      outline: none;
+      transition: border-color .15s ease, box-shadow .15s ease;
+    }
+    .field:hover { border-color: #c2b7a3; }
+    .field:focus {
+      border-color: var(--brand);
+      box-shadow: 0 0 0 3px rgba(37, 116, 235, 0.13);
+    }
+    .field-label {
+      display: block;
+      margin-bottom: 0.35rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #4a443a;
+    }
+    .btn-primary {
+      width: 100%;
+      height: 2.5rem;
+      border-radius: 0.65rem;
+      border: none;
+      background: linear-gradient(135deg, #2574eb 0%, #169c62 100%);
+      color: #fff;
+      font-size: 0.875rem;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 14px -2px rgba(37, 116, 235, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      transition: filter .15s ease, box-shadow .15s ease;
+    }
+    .btn-primary:hover { filter: brightness(0.95); box-shadow: 0 6px 18px -2px rgba(37, 116, 235, 0.32); }
+    .btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
+    .alert-error {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      border: 1px solid rgba(225, 29, 72, 0.25);
+      background: #fff1f2;
+      color: #be123c;
+      padding: 0.55rem 0.8rem;
+      border-radius: 0.65rem;
+      font-size: 0.8rem;
+      margin-bottom: 1rem;
+    }
+    .alert-warn {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+      border: 1px solid rgba(217, 119, 6, 0.28);
+      background: #fffbeb;
+      color: #92400e;
+      padding: 0.55rem 0.8rem;
+      border-radius: 0.65rem;
+      font-size: 0.78rem;
+      margin-top: 1rem;
+      line-height: 1.45;
+    }
+    .alert-warn svg, .alert-error svg { flex-shrink: 0; }
+    .mb-4 { margin-bottom: 1rem; }
+    .mb-5 { margin-bottom: 1.25rem; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <main class="login-card">
+    <div class="brand">
+      <div class="logo-mark">O</div>
+      <div>
+        <h1>OutlookRegister 控制台</h1>
+        <p>请登录以继续访问</p>
+      </div>
+    </div>
+
+    <div id="alert" class="alert-error hidden" role="alert">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6M9 9l6 6"/></svg>
+      <span id="alert-text"></span>
+    </div>
+
+    <form id="form" autocomplete="on">
+      <div class="mb-4">
+        <label class="field-label" for="username">用户名</label>
+        <input class="field" type="text" id="username" required autofocus
+               autocomplete="username" placeholder="请输入用户名" />
+      </div>
+      <div class="mb-5">
+        <label class="field-label" for="password">密码</label>
+        <input class="field" type="password" id="password"
+               required autocomplete="current-password" placeholder="请输入密码" />
+      </div>
+      <button class="btn-primary" type="submit" id="submitBtn">登 录</button>
+    </form>
+
+    <div id="default-warn" class="alert-warn hidden">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+      <span>当前为默认账号 <b>admin / admin</b>，登录后请前往页面右上角「改密」修改密码</span>
+    </div>
+  </main>
+
+  <script>
+    const params = new URLSearchParams(location.search);
+    let next = params.get('next') || '/';
+    if (!next.startsWith('/') || next.startsWith('//')) next = '/';
+
+    // 默认账号检测 (公开接口, 不含敏感信息)
+    fetch('/api/auth/meta').then(r => r.json()).then(d => {
+      if (d && d.is_default_credentials) {
+        document.getElementById('default-warn').classList.remove('hidden');
+      }
+    }).catch(() => {});
+
+    const alertBox = document.getElementById('alert');
+    const alertText = document.getElementById('alert-text');
+    function showError(text) {
+      alertText.textContent = text;
+      alertBox.classList.remove('hidden');
+    }
+
+    document.getElementById('form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.textContent = '登录中…';
+      alertBox.classList.add('hidden');
+      try {
+        const r = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: document.getElementById('username').value.trim(),
+            password: document.getElementById('password').value,
+            next: next,
+          }),
+        });
+        const d = await r.json().catch(() => ({}));
+        if (r.ok && d.ok) {
+          location.href = d.next || next;
+          return;
+        }
+        showError(d.message || ('HTTP ' + r.status));
+      } catch (err) {
+        showError('网络错误，请重试');
+      }
+      btn.disabled = false;
+      btn.textContent = '登 录';
+    });
+  </script>
+</body>
+</html>

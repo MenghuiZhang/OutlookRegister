@@ -4,9 +4,10 @@ import json
 from get_token import get_access_token
 from concurrent.futures import ThreadPoolExecutor
 from utils import random_email, generate_strong_password
-from controllers.ruyipage_controller import RuyipageController
-from controllers.patchright_controller import PatchrightController
-from controllers.playwright_controller import PlaywrightController
+from controllers.camoufox_controller import CamoufoxController
+
+# 从代理池租节点时最长等待秒数 (全部被占用/冷却时排队)
+PROXY_LEASE_WAIT_SECONDS = 120.0
 
 
 
@@ -53,6 +54,48 @@ def process_single_flow(controller):
 
         controller.clean_up(page, "done_browser")
 
+
+def run_single_flow_with_pool(controller, process_fn=None, tag="W"):
+    """代理池版任务入口：先按调度策略租一个节点 (默认顺序轮询)，再执行注册流程。
+
+    - 代理池为空 → 直连租约，行为与旧版一致 (回退 config.json 的 proxy 字段)
+    - 租不到节点 (全部占用/冷却/停用) → 本任务跳过计失败
+    - 任务结束释放租约: 成功 → success；IP 异常 → network (进冷却阶梯)；其余 → failure
+    """
+    from proxy_pool import get_proxy_pool
+
+    process_fn = process_fn or process_single_flow
+    pool = get_proxy_pool()
+    lease = pool.acquire(tag, wait=True, wait_timeout=PROXY_LEASE_WAIT_SECONDS)
+    if lease is None:
+        print(f"[{tag}] 跳过：代理池没有可用节点（占用/冷却/停用）")
+        return False
+
+    controller.assign_proxy(lease)
+    if lease.direct:
+        print(f"[{tag}] 本轮直连（代理池为空）")
+    else:
+        print(f"[{tag}] 本轮节点: {lease.masked}")
+
+    ok = False
+    try:
+        ok = bool(process_fn(controller))
+    except Exception as e:
+        print(e)
+        ok = False
+    finally:
+        fail_code = str(getattr(controller.thread_local, "fail_code", "") or "")
+        if ok:
+            outcome = "success"
+        elif fail_code in ("IP_BLOCK", "RATE_LIMIT"):
+            outcome = "network"  # IP 质量问题 → 节点进冷却阶梯
+        else:
+            outcome = "failure"
+        pool.release(lease, outcome=outcome, message=fail_code)
+        controller.assign_proxy(None)
+    return ok
+
+
 def run_concurrent_flows(controller, concurrent_flows=10, max_tasks=100):
     task_counter = 0
     succeeded_tasks = 0
@@ -75,7 +118,7 @@ def run_concurrent_flows(controller, concurrent_flows=10, max_tasks=100):
                 running_futures.remove(future)
 
             while len(running_futures) < concurrent_flows and task_counter < max_tasks:
-                new_future = executor.submit(process_single_flow, controller)
+                new_future = executor.submit(run_single_flow_with_pool, controller, process_single_flow, f"W{task_counter + 1}")
                 running_futures.add(new_future)
                 task_counter += 1
                 if max_tasks > 1 and task_counter % (max_tasks // 2) == 0:
@@ -91,20 +134,13 @@ def run_concurrent_flows(controller, concurrent_flows=10, max_tasks=100):
 if __name__ == "__main__":
 
     with open('config.json', 'r', encoding='utf-8') as f:
-        data = json.load(f) 
+        data = json.load(f)
     os.makedirs("Results", exist_ok=True)
 
     max_tasks = data["max_tasks"]
     concurrent_flows = data["concurrent_flows"]
 
-    if data["choose_browser"] =="patchright":
-        selected_controller = PatchrightController()
-    elif data["choose_browser"] =="playwright":
-        selected_controller = PlaywrightController()
-    elif data["choose_browser"] =="ruyipage":
-        selected_controller = RuyipageController()
-    else:
-        print("不支持的浏览器类型，填写patchright、playwright或者ruyipage")
+    selected_controller = CamoufoxController()
   
 
     try:

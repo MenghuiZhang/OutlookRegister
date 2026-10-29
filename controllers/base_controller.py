@@ -16,7 +16,6 @@ class BaseBrowserController(ABC):
             data = json.load(f)
 
         self.config = data
-        self.choosed_mail = data['choosed_mail']
         self.wait_time = data['bot_protection_wait'] * 1000
         self.max_captcha_retries = data['max_captcha_retries']
         self.enable_oauth2 = data["oauth2"]['enable_oauth2']
@@ -26,9 +25,87 @@ class BaseBrowserController(ABC):
         self.thread_local = threading.local()
         self.cleanup_lock = threading.Lock()
         self.active_resources = []  # 记录资源以便关闭
-
         self.results_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'Results')
         os.makedirs(self.results_dir, exist_ok=True)
+
+    # ---- 代理池租约支持 (web_console / main 每个任务开始前调用) ----
+    def assign_proxy(self, lease):
+        """任务级代理租约：写入线程本地，只影响当前线程之后启动的浏览器。
+
+        lease 为 None / 直连租约时回退 config.json 的 proxy 字段。
+        同时重置该线程的失败码 (供代理池释放时判定 outcome)。
+        """
+        tl = self.thread_local
+        if lease is not None and not getattr(lease, "direct", False):
+            tl.task_proxy_spec = lease.spec
+            tl.task_proxy_identity = lease.identity
+        else:
+            tl.task_proxy_spec = ""
+            tl.task_proxy_identity = ""
+        tl.fail_code = ""
+
+    def _task_proxy_option(self):
+        """浏览器 launch 用的 proxy 参数。
+
+        优先取任务租约 spec (线程级, 由代理池下发)；否则回退 config proxy。
+        """
+        spec = getattr(self.thread_local, "task_proxy_spec", "") or ""
+        if spec:
+            try:
+                from proxy_pool import build_proxy_option
+                option, _loopback = build_proxy_option(spec)
+                return option
+            except Exception as e:
+                print(f"[Proxy] 任务代理解析失败 ({e})，回退 config 代理/直连")
+                return {"server": self.proxy} if self.proxy else None
+        return {"server": self.proxy} if self.proxy else None
+
+    def _close_thread_browser(self):
+        """关闭当前线程的浏览器实例 (代理节点切换时重开)。"""
+        p = getattr(self.thread_local, "playwright", None)
+        b = getattr(self.thread_local, "browser", None)
+        if b:
+            try:
+                b.close()
+            except Exception:
+                pass
+        if p:
+            try:
+                p.stop()
+            except Exception:
+                pass
+        self.thread_local.playwright = None
+        self.thread_local.browser = None
+        with self.cleanup_lock:
+            self.active_resources = [
+                x for x in self.active_resources if not (x[0] is p and x[1] is b)
+            ]
+
+    def get_thread_browser(self):
+        """
+        通用逻辑:获取不同进程的浏览器
+        """
+        if hasattr(self.thread_local, "browser"):
+            # 任务换了代理节点: 关掉旧浏览器, 用新节点重新 launch
+            want = getattr(self.thread_local, "task_proxy_identity", "") or ""
+            have = getattr(self.thread_local, "browser_proxy_identity", "") or ""
+            if want != have:
+                self._close_thread_browser()
+        if not hasattr(self.thread_local, "browser"):
+            p, b = self.launch_browser()
+            if not p:
+                return False
+
+            self.thread_local.playwright = p
+            self.thread_local.browser = b
+            self.thread_local.browser_proxy_identity = (
+                getattr(self.thread_local, "task_proxy_identity", "") or ""
+            )
+
+            with self.cleanup_lock:
+                self.active_resources.append((p, b))
+
+        return self.thread_local.browser
 
     @abstractmethod
     def launch_browser(self):
@@ -153,18 +230,11 @@ class BaseBrowserController(ABC):
 
     def get_mail_provider(self, email, page):
         """
-        通用逻辑:获取辅助邮箱的类
+        通用逻辑:获取辅助邮箱的类 (固定使用 cf_tempmail)
         """
 
-        from .moemail_controller import MoemailController
-        from .graph_controller import OutlookGraphController
-
-        providers = {
-            "moemail": MoemailController,
-            "outlookgraph": OutlookGraphController
-        }
-        provider_cls = providers.get(self.choosed_mail)
-        return provider_cls(email, page) if provider_cls else None
+        from .cf_tempmail_controller import CloudflareTempMailController
+        return CloudflareTempMailController(email, page)
 
     def outlook_register(self, page, email, password):
         """
@@ -189,6 +259,7 @@ class BaseBrowserController(ABC):
             self.smooth_click(page, consent_btn)
         except Exception:
             print("[Error: IP] - IP质量不佳，无法进入注册界面。")
+            self.thread_local.fail_code = "IP_BLOCK"
             return False
 
         try:
@@ -215,6 +286,7 @@ class BaseBrowserController(ABC):
 
             if page.get_by_text("请重试。如果仍然不起作用，请稍后再试。").count() > 0:
                 print("[Error: IP or browser] - 当前IP注册频率过快。检查IP与是否为指纹浏览器并关闭了无头模式。")
+                self.thread_local.fail_code = "RATE_LIMIT"
                 return False
 
             year_input = page.locator('[name="BirthYear"]')
@@ -260,6 +332,7 @@ class BaseBrowserController(ABC):
 
             if page.get_by_text('一些异常活动').count() or page.get_by_text('此站点正在维护，暂时无法使用，请稍后重试。').count() or page.get_by_text("请重试。如果仍然不起作用，请稍后再试").count() > 0:
                 print("[Error: IP or browser] - 当前IP注册频率过快。检查IP与是否为指纹浏览器并关闭了无头模式。")
+                self.thread_local.fail_code = "RATE_LIMIT"
                 return False
 
             if page.locator('iframe#enforcementFrame').count() > 0:
@@ -272,6 +345,7 @@ class BaseBrowserController(ABC):
 
         except Exception:
             print("[Error: IP] - 加载超时或因触发机器人检测导致按压次数达到最大仍未通过。")
+            self.thread_local.fail_code = "IP_BLOCK"
             return False
 
         # --- 验证码通过后，绑定辅助邮箱服务 ---
@@ -279,7 +353,7 @@ class BaseBrowserController(ABC):
             current_full_email = f"{email}{self.email_suffix}"
             mail_provider = self.get_mail_provider(current_full_email, page)
             if not mail_provider:
-                print(f"[Error: Config] - 未配置或不支持的邮箱系统: {self.choosed_mail}")
+                print("[Error: Config] - 辅助邮箱初始化失败")
                 return False
 
             # 挂载到 page 对象上，方便写入 secured_tokens.txt
@@ -290,16 +364,66 @@ class BaseBrowserController(ABC):
             next_btn = page.locator('[data-testid="primaryButton"]')
             self.smooth_click(page, next_btn)
 
-            email_input = page.locator('#floatingLabelInput10')
-            self.smooth_type(page, email_input, recovery_email)
+            # 辅助邮箱输入框: ID 前缀匹配 (Microsoft 会变更加 id 编号)
+            recovery_input = None
+            for sel in ['input[id^="floatingLabelInput"]', '#floatingLabelInput10',
+                        'input[type="email"]', 'input[aria-label*="电子邮件"]']:
+                loc = page.locator(sel)
+                try:
+                    loc.wait_for(state="visible", timeout=4000)
+                    recovery_input = loc
+                    print(f"[Debug] 辅助邮箱输入框命中: {sel}")
+                    break
+                except Exception:
+                    continue
+            if not recovery_input:
+                dump = page.evaluate(
+                    "() => [...document.querySelectorAll('input')].map(e => "
+                    "({id: e.id, type: e.type, name: e.name, "
+                    "aria: e.getAttribute('aria-label'), ph: e.placeholder}))")
+                print("[Debug] 未找到辅助邮箱输入框, 页面 input 元素:", dump)
+                raise RuntimeError("未找到辅助邮箱输入框")
+            self.smooth_type(page, recovery_input, recovery_email)
 
             self.wait_random_ratio(page, 0.03)
             next_btn = page.locator('[data-testid="primaryButton"]')
             self.smooth_click(page, next_btn)
 
             verify_code = mail_provider.get_verify_code()
-            code_input = page.locator('#codeEntry-0')
-            self.smooth_type(page, code_input, verify_code)
+
+            # 验证码输入框: 同样前缀匹配兜底
+            code_input = None
+            for sel in ['input[id^="codeEntry"]', '#codeEntry-0',
+                        'input[inputmode="numeric"]', 'input[aria-label*="代码"]']:
+                loc = page.locator(sel)
+                try:
+                    loc.wait_for(state="visible", timeout=4000)
+                    code_input = loc
+                    print(f"[Debug] 验证码输入框命中: {sel}")
+                    break
+                except Exception:
+                    continue
+            if not code_input:
+                dump = page.evaluate(
+                    "() => [...document.querySelectorAll('input')].map(e => "
+                    "({id: e.id, type: e.type, aria: e.getAttribute('aria-label')}))")
+                print("[Debug] 未找到验证码输入框, 页面 input 元素:", dump)
+                raise RuntimeError("未找到验证码输入框")
+            self.smooth_click(page, code_input)
+
+            # 分体式 OTP 输入框 (每格一位): 逐格填入; 单格输入框: 整段输入
+            boxes = page.locator('input[id^="codeEntry"]')
+            box_count = boxes.count()
+            if box_count >= len(verify_code):
+                for i, ch in enumerate(verify_code):
+                    boxes.nth(i).type(ch, delay=random.randint(30, 80))
+                filled = page.evaluate(
+                    "() => [...document.querySelectorAll('input[id^=codeEntry]')]"
+                    ".filter(b => b.value).length")
+                if filled < len(verify_code):
+                    raise RuntimeError(f"验证码仅填入 {filled}/{len(verify_code)} 格")
+            else:
+                self.smooth_type(page, code_input, verify_code, click_first=False)
 
         except Exception as e:
             print(f"[Error: Proof Email] - {email}{self.email_suffix}注册成功，但辅助邮箱绑定失败: {e}")

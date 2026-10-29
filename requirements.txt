@@ -1,5 +1,5 @@
 faker
 requests
-ruyipage
-playwright
-patchright>=1.61.2
+camoufox[geoip]
+fastapi
+uvicorn[standard]

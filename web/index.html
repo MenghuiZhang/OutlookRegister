@@ -1633,6 +1633,20 @@
           <div id="result-table"></div>
           <div id="resultsMessage" class="message"></div>
         </section>
+
+        <section class="panel panel-pad" style="margin-top:16px;">
+          <div class="toolbar-bar">
+            <div class="toolbar-filters">
+              <strong style="font-size:13px;">运行截图</strong>
+              <span id="shot-meta" class="sub" style="margin:0;">每个任务的关键步骤与失败现场</span>
+            </div>
+            <div class="actions">
+              <button id="btn-refresh-shots" class="btn" type="button">刷新截图</button>
+            </div>
+          </div>
+          <div id="shot-tasks" class="flex flex-wrap gap-2 mb-3"></div>
+          <div id="shot-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3"></div>
+        </section>
       </div>
     </section>
 
@@ -1773,7 +1787,7 @@
     }
     if (tabName === 'proxy') loadProxies();
     if (tabName === 'email') loadEmailTab();
-    if (tabName === 'results') loadResults();
+    if (tabName === 'results') { loadResults(); loadScreenshots(); }
   }
 
   document.querySelectorAll('.tab').forEach(btn => {
@@ -2457,6 +2471,57 @@
     currentResultData = await (await fetch('/api/results/' + encodeURIComponent(name))).json();
     renderResultTable();
   }
+
+  /* ---------- 运行截图 (Results/screenshots) ---------- */
+  let shotTasks = [];
+  let currentShotDir = null;
+
+  async function loadScreenshots() {
+    shotTasks = await (await fetch('/api/screenshots')).json();
+    const box = $('shot-tasks');
+    box.innerHTML = '';
+    if (!shotTasks.length) {
+      $('shot-grid').innerHTML = '<div class="empty">暂无运行截图</div>';
+      $('shot-meta').textContent = '暂无截图';
+      return;
+    }
+    if (!currentShotDir || !shotTasks.some(t => t.dir === currentShotDir)) {
+      currentShotDir = shotTasks[0].dir;
+    }
+    shotTasks.forEach(t => {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'btn btn-sm' + (t.dir === currentShotDir ? ' primary' : '');
+      chip.style.fontFamily = 'monospace';
+      chip.textContent = t.dir + ' (' + t.count + ')';
+      chip.onclick = () => { currentShotDir = t.dir; loadScreenshots(); };
+      box.appendChild(chip);
+    });
+    const task = shotTasks.find(t => t.dir === currentShotDir);
+    $('shot-meta').textContent = task.dir + ' · ' + task.count + ' 张 (点击图片看大图)';
+    const grid = $('shot-grid');
+    grid.innerHTML = '';
+    task.files.forEach(f => {
+      const href = '/api/screenshots/' + encodeURIComponent(task.dir) + '/' + encodeURIComponent(f.name);
+      const a = document.createElement('a');
+      a.href = href;
+      a.target = '_blank';
+      a.rel = 'noopener';
+      a.style.cssText = 'display:block;border:1px solid rgba(15,23,42,.08);border-radius:10px;overflow:hidden;background:#fff';
+      const img = document.createElement('img');
+      img.src = href;
+      img.loading = 'lazy';
+      img.style.cssText = 'width:100%;height:auto;display:block';
+      const cap = document.createElement('div');
+      cap.textContent = f.name.replace(/^\d+-/, '');
+      cap.style.cssText = 'font:11px monospace;color:#64748b;padding:6px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
+      a.appendChild(img);
+      a.appendChild(cap);
+      grid.appendChild(a);
+    });
+  }
+
+  $('btn-refresh-shots').onclick = loadScreenshots;
 
   function renderResultTable() {
     const holder = $('result-table');

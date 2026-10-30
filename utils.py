@@ -1,6 +1,13 @@
 import random
 import string
 import secrets
+import sys
+from datetime import datetime
+
+def log(message, level="STEP"):
+    """统一日志: 时间戳 + 级别标记, flush 保证实时 (web_console TeeStream / 落盘 tee 都依赖 stdout)"""
+    ts = datetime.now().strftime("%H:%M:%S")
+    print(f"[{ts}] [{level}] {message}", flush=True)
 
 def random_email(length=random.randint(12,14)):
 

@@ -1,4 +1,6 @@
 import json
+import os
+import time
 import base64
 import string
 import hashlib
@@ -7,6 +9,18 @@ import requests
 from datetime import datetime
 from urllib.request import getproxies
 from urllib.parse import quote, parse_qs
+from utils import log
+
+
+def _shot(page, name):
+    """OAuth 流程截图: 复用注册流程挂在 page 上的截图目录, 无目录则跳过"""
+    shot_dir = getattr(page, "shot_dir", None)
+    if not shot_dir:
+        return
+    try:
+        page.screenshot(path=os.path.join(shot_dir, f"{int(time.time() * 1000)}-{name}.png"))
+    except Exception:
+        pass
 
 def get_proxy():
     try:
@@ -50,9 +64,12 @@ def handle_oauth2_form(page, email, attempt):
         consent_btn = page.locator('[data-testid="appConsentPrimaryButton"]')
         timeout_val = 2500 if attempt > 0 else 20000
         consent_btn.wait_for(state='visible', timeout=timeout_val)
+        _shot(page, f"oauth-consent-page-attempt{attempt + 1}")
         consent_btn.click(timeout=10000)
-    except:
-        pass
+        log("OAuth2 登录表单已自动填写并点击同意")
+    except Exception as e:
+        log(f"OAuth2 表单自动填写未完成 (可能已登录直接进入同意页): {type(e).__name__}", "WARN")
+        _shot(page, f"oauth-form-warn-attempt{attempt + 1}")
 
 def get_access_token(page, email, max_retries=3):
     for attempt in range(max_retries):
@@ -97,7 +114,11 @@ def _try_get_access_token(page, email, attempt):
         try:
             page.wait_for_timeout(250)
             page.goto(authorize_url, timeout=30000)
+            log(f"OAuth2 授权页已打开 (第 {attempt + 1} 次尝试)")
+            _shot(page, f"oauth-authorize-attempt{attempt + 1}")
         except:
+            log(f"OAuth2 授权页打开失败 (第 {attempt + 1} 次尝试), 当前 URL: {page.url}", "ERROR")
+            _shot(page, f"oauth-fail-open-attempt{attempt + 1}")
             return False, False, False
 
         handle_oauth2_form(page, f"{email}{_email_suffix}", attempt)
@@ -113,22 +134,27 @@ def _try_get_access_token(page, email, attempt):
 
             if i > 0 and i % refresh_interval == 0:
                 if refresh_count >= max_refreshes:
-                    return False, False, False
+                    break
                 refresh_count += 1
                 try:
                     page.reload(timeout=10000)
                 except:
                     pass
         else:
+            log(f"OAuth2 回调 code 未捕获 (当前 URL: {page.url[:100]})", "ERROR")
+            _shot(page, f"oauth-fail-no-code-attempt{attempt + 1}")
             return False, False, False
 
     finally:
         page.remove_listener("request", on_request)
 
     if not captured_url or 'code=' not in captured_url:
+        log(f"OAuth2 回调 code 未捕获 (当前 URL: {page.url[:100]})", "ERROR")
+        _shot(page, f"oauth-fail-no-code-attempt{attempt + 1}")
         return False, False, False
 
     auth_code = parse_qs(captured_url.split('?')[1])['code'][0]
+    log(f"OAuth2 回调 code 已捕获 ({auth_code[:8]}…)")
 
     try:
         response = requests.post(
@@ -146,13 +172,16 @@ def _try_get_access_token(page, email, attempt):
         )
 
         if 'refresh_token' in response.json():
+            log("OAuth2 token 换取成功 (refresh_token 已获取)", "SUCCESS")
             tokens = response.json()
             return (
                 tokens['refresh_token'],
                 tokens.get('access_token', ''),
                 datetime.now().timestamp() + tokens['expires_in']
             )
-    except:
-        return False, False, False
+        log(f"OAuth2 token 换取失败: HTTP {response.status_code} · {response.text[:200]}", "ERROR")
+    except Exception as e:
+        log(f"OAuth2 token 请求异常: {type(e).__name__}: {e}", "ERROR")
+    return False, False, False
 
     return False, False, False

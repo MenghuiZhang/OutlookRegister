@@ -707,7 +707,15 @@ def _parse_result_file(path):
             line = raw.rstrip("\n")
             if not line.strip():
                 continue
-            if "---" in line:
+            if "----" in line:
+                # 新分隔符: 密码字符集不含连字符, 不会与密码内容冲突
+                head, _, rest = line.partition("----")
+                if ": " in head or head.endswith(":"):
+                    email = head.rsplit(":", 1)[0]
+                    rows.append([email] + rest.split("----"))
+                else:
+                    rows.append(line.split("----"))
+            elif "---" in line:
                 head, _, rest = line.partition("---")
                 if ": " in head or head.endswith(":"):
                     email = head.rsplit(":", 1)[0]
@@ -749,6 +757,45 @@ def get_result(name: str):
         width = max((len(r) for r in rows), default=1)
         headers = [f"字段{i + 1}" for i in range(width)]
     return {"name": name, "headers": headers, "rows": rows, "count": len(rows)}
+
+
+# ---- 运行截图 (Results/screenshots) ----
+@app.get("/api/screenshots")
+def list_screenshots():
+    """按任务目录列出截图 (最新在前)"""
+    root = os.path.join(RESULTS_DIR, "screenshots")
+    tasks = []
+    if os.path.isdir(root):
+        for name in os.listdir(root):
+            d = os.path.join(root, name)
+            if name.startswith(".") or not os.path.isdir(d):
+                continue
+            files = []
+            for fn in sorted(os.listdir(d)):
+                fp = os.path.join(d, fn)
+                if fn.lower().endswith(".png") and os.path.isfile(fp):
+                    try:
+                        files.append({"name": fn, "size": os.path.getsize(fp)})
+                    except OSError:
+                        pass
+            if files:
+                try:
+                    mtime = os.path.getmtime(d)
+                except OSError:
+                    mtime = 0
+                tasks.append({"dir": name, "count": len(files), "mtime": mtime, "files": files})
+    tasks.sort(key=lambda t: t["mtime"], reverse=True)
+    return tasks
+
+
+@app.get("/api/screenshots/{dir_name}/{file_name}")
+def get_screenshot(dir_name: str, file_name: str):
+    root = os.path.join(RESULTS_DIR, "screenshots")
+    d = os.path.join(root, os.path.basename(dir_name))
+    path = os.path.join(d, os.path.basename(file_name))
+    if not path.lower().endswith(".png") or not os.path.isfile(path):
+        raise HTTPException(404, "截图不存在")
+    return FileResponse(path)
 
 
 # ---- 邮箱服务 (cf_tempmail) ----

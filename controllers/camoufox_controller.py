@@ -5,6 +5,7 @@ import time
 import random
 from playwright.sync_api import sync_playwright
 from camoufox import NewBrowser
+from utils import log
 from .base_controller import BaseBrowserController
 
 
@@ -76,17 +77,21 @@ class CamoufoxController(BaseBrowserController):
                 if exe:
                     launch_kwargs["executable_path"] = exe
                 else:
-                    print(f"[Camoufox] 未找到运行时 {self.browser_version}, 使用默认版本")
+                    log(f"未找到 camoufox 运行时 {self.browser_version}, 使用默认版本", "WARN")
             if self.block_images:
                 launch_kwargs["block_images"] = True
             if self.block_webrtc:
                 launch_kwargs["block_webrtc"] = True
 
             b = NewBrowser(p, **launch_kwargs)
+            log(f"浏览器已启动 (headless={self.headless} geoip={self.geoip} locale={self.locale} "
+                f"os={self.os or '默认'} 代理={'有' if proxy_settings else '无'})")
             return p, b
 
         except Exception as e:
-            print(f"启动浏览器失败: {e}")
+            log(f"浏览器启动失败: {type(e).__name__}: {e}", "ERROR")
+            if "Failed to get IP address" in str(e) or "geoip" in str(e).lower():
+                log("GeoIP 查询失败 → 代理节点不通或过慢, 建议换节点/直连", "ERROR")
             if p:
                 try:
                     p.stop()
@@ -111,8 +116,11 @@ class CamoufoxController(BaseBrowserController):
         遍历所有 frame 找 [aria-label="可访问性挑战"] → 点击 → 找 [aria-label="再次按下"] → 点击
         """
         page.wait_for_timeout(random.randint(400, 700))
+        captcha_start = time.time()
 
-        for _ in range(self.max_captcha_retries + 1):
+        for round_no in range(self.max_captcha_retries + 1):
+            log(f"按压验证码第 {round_no + 1}/{self.max_captcha_retries + 1} 轮")
+            self._shot(page, f"captcha-round-{round_no + 1}")
 
             # 等挑战按钮出现 (期间若已直接通过则提前返回)
             loc = None
@@ -122,9 +130,11 @@ class CamoufoxController(BaseBrowserController):
                 if loc:
                     break
                 if page.get_by_text('保护你的帐户').count() > 0 or page.locator('[data-testid="primaryButton"]').count() > 0:
+                    log(f"验证码直接通过, 无需按压 (第 {round_no + 1} 轮, 耗时 {time.time() - captcha_start:.0f}s)", "SUCCESS")
                     return True
                 page.wait_for_timeout(300)
             if not loc:
+                log(f"挑战按钮 15s 未出现且无通过迹象 (已等 {time.time() - captcha_start:.0f}s)", "WARN")
                 return False
 
             self.smooth_click(page, loc)
@@ -139,6 +149,8 @@ class CamoufoxController(BaseBrowserController):
                 page.wait_for_timeout(300)
             if loc2:
                 self.smooth_click(page, loc2)
+            else:
+                log("'再次按下' 按钮 10s 未出现", "WARN")
 
             try:
                 page.locator('.draw').wait_for(state="detached", timeout=14000)
@@ -149,7 +161,7 @@ class CamoufoxController(BaseBrowserController):
                     captcha_passed = False
                     for _ in range(20):
                         if page.get_by_text('一些异常活动').count() or page.get_by_text('此站点正在维护，暂时无法使用，请稍后重试。').count() > 0:
-                            print("[Error: Rate limit] - 正常通过验证码，但当前IP注册频率过快。")
+                            log("通过验证码但 IP 注册频率过快被拒 → 换 IP/节点", "ERROR")
                             self.thread_local.fail_code = "RATE_LIMIT"
                             return False
                         elif self._find_in_frames(page, '[aria-label="可访问性挑战"]'):
@@ -166,11 +178,13 @@ class CamoufoxController(BaseBrowserController):
                             captcha_passed = True
 
                     if captcha_passed:
+                        log(f"按压验证码通过 (第 {round_no + 1} 轮, 耗时 {time.time() - captcha_start:.0f}s)", "SUCCESS")
                         break
 
                 except Exception:
                     if page.get_by_text('保护你的帐户').count() > 0 or page.locator('[data-testid="primaryButton"]').count() > 0:
                         break
+                    log("加载状态异常消失, 查找重试提示中…", "WARN")
                     # 等待重试提示 ("请再试一次" 等, 可能出现在任意 frame 中)
                     retry_hint = None
                     deadline = time.time() + 15
@@ -186,13 +200,19 @@ class CamoufoxController(BaseBrowserController):
                         if retry_hint:
                             break
                         page.wait_for_timeout(400)
+                    if retry_hint:
+                        log("出现 '请再试一次', 进入下一轮按压", "WARN")
+                    else:
+                        log("未见重试提示也未见通过, 进入下一轮", "WARN")
                     continue
 
             except Exception:
                 if page.get_by_text('保护你的帐户').count() > 0 or page.locator('[data-testid="primaryButton"]').count() > 0:
                      break
+                log(".draw 元素等待超时", "WARN")
                 return False
         else:
+            log(f"按压 {self.max_captcha_retries + 1} 轮仍未通过 → 多为指纹/IP 特征被标记", "ERROR")
             return False
 
         return True
@@ -204,7 +224,7 @@ class CamoufoxController(BaseBrowserController):
 
     def clean_up(self, page=None, type="all_browser"):
         if self.keep_browser:
-            print(f"[Camoufox] keep_browser=True, 保留浏览器不关闭 ({type})")
+            log(f"keep_browser=True, 保留浏览器不关闭 ({type})")
             return
 
         if type == "done_browser" and page:

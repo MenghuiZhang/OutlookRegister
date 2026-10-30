@@ -1,11 +1,13 @@
 import re
 import quopri
 import random
+import time
 import email as email_lib
 import email.header
 import requests
 from get_token import get_proxy
 from urllib.parse import quote
+from utils import log
 from .base_controller import BaseEmailProvider
 
 
@@ -54,7 +56,7 @@ class CloudflareTempMailController(BaseEmailProvider):
             headers.update(extra_headers)
 
         last_error = None
-        for _ in range(self.max_request_retries):
+        for retry in range(self.max_request_retries):
             try:
                 resp = requests.request(
                     method, self.base_url + path,
@@ -65,6 +67,8 @@ class CloudflareTempMailController(BaseEmailProvider):
                 last_error = f"HTTP {resp.status_code}: {resp.text[:200]}"
             except Exception as e:
                 last_error = e
+            if retry + 1 < self.max_request_retries:
+                log(f"临时邮箱服务请求失败 (第 {retry + 1}/{self.max_request_retries} 次): {last_error}, 重试", "WARN")
             self.page.wait_for_timeout(2000)
         raise TimeoutError(f"[cf_tempmail] 请求失败 {method} {path}: {last_error}")
 
@@ -81,6 +85,7 @@ class CloudflareTempMailController(BaseEmailProvider):
         if self.random_subdomain:
             body["enableRandomSubdomain"] = True
 
+        log(f"创建临时邮箱 (模式: {self.mode}, 域名: {self.domain or '服务端自动'})")
         if self.mode == "admin":
             data = self._request("POST", "/admin/new_address", json=body).json()
         else:
@@ -89,25 +94,32 @@ class CloudflareTempMailController(BaseEmailProvider):
 
         self.email = data["address"]
         self.jwt = data.get("jwt")
+        log(f"临时邮箱已创建: {self.email}")
         return self.email
 
     # ---------- 收验证码 ----------
     def get_verify_code(self):
         last_error = "未获取到目标邮件"
+        poll_start = time.time()
+        max_polls = max(self.max_request_retries, 20)
         # 微软发码有延迟, 至少轮询 2 分钟
-        for _ in range(max(self.max_request_retries, 20)):
+        for poll in range(max_polls):
             try:
                 mails = self._fetch_mails()
                 for mail in mails:
                     code = self._extract_code(mail)
                     if code:
+                        log(f"验证码已提取: {code} (第 {poll + 1} 次轮询, 耗时 {time.time() - poll_start:.0f}s)", "SUCCESS")
                         return code
+                if (poll + 1) % 5 == 0:
+                    log(f"验证码轮询第 {poll + 1}/{max_polls} 次: 已收 {len(mails)} 封, 未见目标邮件 ({time.time() - poll_start:.0f}s)")
                 last_error = "未获取到目标邮件"
             except Exception as e:
                 last_error = e
+                log(f"验证码轮询第 {poll + 1} 次请求异常: {e}", "WARN")
             self.page.wait_for_timeout(6000)
         else:
-            print(f"获取验证码错误:{last_error}")
+            log(f"验证码获取失败 ({max_polls} 次轮询, {time.time() - poll_start:.0f}s): {last_error}", "ERROR")
             raise TimeoutError
 
     def _fetch_mails(self):
